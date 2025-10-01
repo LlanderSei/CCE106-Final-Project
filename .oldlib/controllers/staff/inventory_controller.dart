@@ -2,7 +2,7 @@
 // Start modification: Added CRUD methods for ingredients
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/models/admin/ingredient.dart'; // Adjust import based on project name
+import 'package:bbqlagao_and_beefpares/.old/models/admin/ingredient.dart'; // Adjust import based on project name
 
 final inventoryProvider = StreamProvider<List<Ingredient>>((ref) {
   return FirebaseFirestore.instance.collection('ingredients').snapshots().map((

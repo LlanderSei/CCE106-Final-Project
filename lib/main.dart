@@ -1,8 +1,7 @@
-import 'package:bbqlagao_and_beefpares/views/admin/admin_home_screen.dart';
-import 'package:bbqlagao_and_beefpares/views/auth/auth_screen.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/staff_home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase core
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,10 +9,10 @@ void main() async {
   runApp(
     ProviderScope(
       child: MaterialApp(
-        initialRoute: '/auth',
+        initialRoute: '/staff',
         routes: {
-          '/auth': (context) => AuthScreen(),
-          '/admin': (context) => AdminHomeScreen(),
+          // '/auth': (context) => AuthScreen(),
+          '/staff': (context) => StaffHomePage(),
         },
       ),
     ),
@@ -21,18 +20,16 @@ void main() async {
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key, required AdminHomeScreen home});
+  const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Admin Home Screen',
+      title: 'Manager Home Screen',
       theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 255, 161, 161),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent),
       ),
-      home: AdminHomeScreen(),
+      home: StaffHomePage(),
     );
   }
 }

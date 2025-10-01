@@ -1,7 +1,7 @@
 // lib/controllers/admin/dish_controller.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/models/admin/dish.dart';
+import 'package:bbqlagao_and_beefpares/.old/models/admin/dish.dart';
 
 final dishProvider = StreamProvider<List<Dish>>((ref) {
   return FirebaseFirestore.instance.collection('dishes').snapshots().map((snapshot) {

@@ -1,8 +1,8 @@
 // lib/views/admin/inventory_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/controllers/admin/inventory_controller.dart';
-import 'package:bbqlagao_and_beefpares/models/admin/ingredient.dart';
+import 'package:bbqlagao_and_beefpares/.old/controllers/staff/inventory_controller.dart';
+import 'package:bbqlagao_and_beefpares/.old/models/admin/ingredient.dart';
 
 class InventoryScreen extends ConsumerWidget {
   const InventoryScreen({super.key});

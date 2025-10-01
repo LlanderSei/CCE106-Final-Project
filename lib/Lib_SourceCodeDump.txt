@@ -1,0 +1,1612 @@
+// Source code dump of all files in e:\Documents\Llander\Yuemnigga\CCE106\Project\bbqlagao_and_beefpares\lib
+
+// customtoast.dart
+import 'package:flutter/material.dart';
+
+class Toast {
+  static OverlayEntry? _currentEntry;
+
+  static void show(
+    BuildContext context,
+    String message, {
+    Duration duration = const Duration(seconds: 2),
+  }) {
+    // Remove current toast if one exists
+    _currentEntry?.remove();
+    _currentEntry = null;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => _ToastWidget(
+        message: message,
+        duration: duration,
+        onFinish: () {
+          entry.remove();
+          if (_currentEntry == entry) _currentEntry = null;
+        },
+      ),
+    );
+
+    _currentEntry = entry;
+    overlay.insert(entry);
+  }
+}
+
+class _ToastWidget extends StatefulWidget {
+  final String message;
+  final Duration duration;
+  final VoidCallback onFinish;
+
+  const _ToastWidget({
+    required this.message,
+    required this.duration,
+    required this.onFinish,
+  });
+
+  @override
+  State<_ToastWidget> createState() => _ToastWidgetState();
+}
+
+class _ToastWidgetState extends State<_ToastWidget>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+
+  late Animation<double> _fadeInAnimation;
+  late Animation<Offset> _slideUpAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Quick fade-in
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _fadeInAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeIn,
+    );
+
+    // Slight upward motion while fading in
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _slideUpAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+
+    _fadeController.forward();
+    _slideController.forward();
+
+    // Trigger slow fade-out after duration
+    Future.delayed(widget.duration, () {
+      if (mounted) {
+        _fadeController.reverseDuration = const Duration(milliseconds: 800);
+        _fadeController.reverse().whenComplete(widget.onFinish);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 80,
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        color: Colors.transparent,
+        child: FadeTransition(
+          opacity: _fadeInAnimation,
+          child: SlideTransition(
+            position: _slideUpAnimation,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  widget.message,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+// main.dart
+import 'package:bbqlagao_and_beefpares/pages/manager/staff_home_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(
+    ProviderScope(
+      child: MaterialApp(
+        initialRoute: '/staff',
+        routes: {
+          // '/auth': (context) => AuthScreen(),
+          '/staff': (context) => StaffHomePage(),
+        },
+      ),
+    ),
+  );
+}
+
+class MainApp extends StatelessWidget {
+  const MainApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Manager Home Screen',
+      theme: ThemeData.from(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent),
+      ),
+      home: StaffHomePage(),
+    );
+  }
+}
+
+
+// controllers\manager\inventory_controller.dart
+// lib/controllers/inventory_controller.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bbqlagao_and_beefpares/models/item.dart';
+
+class InventoryController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _collection = 'inventory';
+
+  Stream<List<Item>> get getItems => _firestore
+      .collection(_collection)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Item.fromFirestore(doc)).toList(),
+      );
+
+  Future<void> addItem(Item item) async {
+    await _firestore.collection(_collection).add(item.toFirestore());
+  }
+
+  Future<void> updateItem(String id, Item item) async {
+    await _firestore.collection(_collection).doc(id).update(item.toFirestore());
+  }
+
+  Future<void> deleteItem(String id) async {
+    await _firestore.collection(_collection).doc(id).delete();
+  }
+}
+
+
+// controllers\manager\menu_controller.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bbqlagao_and_beefpares/models/dish.dart';
+
+class MenuController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _collection = 'menu';
+
+  Stream<List<Dish>> get getDishes => _firestore
+      .collection(_collection)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Dish.fromFirestore(doc)).toList(),
+      );
+
+  Future<void> addDish(Dish dish) async {
+    await _firestore.collection(_collection).add(dish.toFirestore());
+  }
+
+  Future<void> updateDish(String id, Dish dish) async {
+    await _firestore.collection(_collection).doc(id).update(dish.toFirestore());
+  }
+
+  Future<void> deleteDish(String id) async {
+    await _firestore.collection(_collection).doc(id).delete();
+  }
+}
+
+
+// models\dish.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class Dish {
+  final String? id;
+  final String name;
+  final String? description;
+  final double price;
+  final bool isVisible;
+  final bool isAvailable;
+  final List<Map<String, dynamic>> ingredients;
+  final String? imageUrl;
+
+  Dish({
+    this.id,
+    required this.name,
+    this.description,
+    required this.price,
+    this.isVisible = true,
+    this.isAvailable = true,
+    required this.ingredients,
+    this.imageUrl,
+  });
+
+  factory Dish.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return Dish(
+      id: doc.id,
+      name: data['name'] ?? '',
+      description: data['description'],
+      price: (data['price'] ?? 0.0).toDouble(),
+      isVisible: data['isVisible'] ?? true,
+      isAvailable: data['isAvailable'] ?? true,
+      ingredients: List<Map<String, dynamic>>.from(data['ingredients'] ?? []),
+      imageUrl: data['imageUrl'],
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      if (description != null) 'description': description,
+      'price': price,
+      'isVisible': isVisible,
+      'isAvailable': isAvailable,
+      'ingredients': ingredients,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    };
+  }
+}
+
+
+// models\item.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class Item {
+  final String? id;
+  final String name;
+  final String? description;
+  final int quantity;
+  final String? imageUrl;
+
+  Item({
+    this.id,
+    required this.name,
+    this.description,
+    required this.quantity,
+    this.imageUrl,
+  });
+
+  factory Item.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return Item(
+      id: doc.id,
+      name: data['name'] ?? '',
+      description: data['description'],
+      quantity: data['quantity'] ?? 0,
+      imageUrl: data['imageUrl'],
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      if (description != null) 'description': description,
+      'quantity': quantity,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    };
+  }
+}
+
+
+// pages\manager\inventory_page.dart
+// lib/pages/manager/inventory_page.dart
+import 'package:bbqlagao_and_beefpares/customtoast.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/item.dart';
+import 'modify_item_page.dart';
+
+class InventoryPage extends StatefulWidget {
+  final Function(bool)? onFabVisibilityChanged;
+
+  const InventoryPage({super.key, this.onFabVisibilityChanged});
+
+  @override
+  State<InventoryPage> createState() => _InventoryPageState();
+}
+
+class _InventoryPageState extends State<InventoryPage> {
+  final ScrollController _scrollController = ScrollController();
+  final InventoryController _controller = InventoryController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    final visible =
+        _scrollController.position.userScrollDirection !=
+        ScrollDirection.reverse;
+    if (widget.onFabVisibilityChanged != null) {
+      widget.onFabVisibilityChanged!(visible);
+    }
+  }
+
+  void _showDeleteDialog(Item item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete ${item.name}?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Delete'),
+              onPressed: () async {
+                await _controller.deleteItem(item.id!);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Item Name',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              Text('Actions', style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<List<Item>>(
+            stream: _controller.getItems,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No inventory items found.'));
+              }
+              final items = snapshot.data!;
+              return ListView.builder(
+                controller: _scrollController,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: item.imageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      item.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) => Icon(
+                                            Icons.image_not_supported,
+                                            size: 50,
+                                          ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                  ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Quantity: ${item.quantity}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ModifyItemPage(
+                                        itemId: item.id,
+                                        item: item,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                onLongPress: () =>
+                                    Toast.show(context, 'Edit Item'),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _showDeleteDialog(item),
+                                onLongPress: () =>
+                                    Toast.show(context, 'Delete Item'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+}
+
+
+// pages\manager\menu_page.dart
+// lib/pages/manager/menu_page.dart
+import 'package:flutter/material.dart' hide MenuController;
+import 'package:flutter/rendering.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/dish.dart';
+import 'modify_dish_page.dart';
+
+class MenuPage extends StatefulWidget {
+  final Function(bool)? onFabVisibilityChanged;
+
+  const MenuPage({super.key, this.onFabVisibilityChanged});
+
+  @override
+  State<MenuPage> createState() => _MenuPageState();
+}
+
+class _MenuPageState extends State<MenuPage> {
+  final ScrollController _scrollController = ScrollController();
+  final MenuController _controller = MenuController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    final visible =
+        _scrollController.position.userScrollDirection !=
+        ScrollDirection.reverse;
+    if (widget.onFabVisibilityChanged != null) {
+      widget.onFabVisibilityChanged!(visible);
+    }
+  }
+
+  void _showDeleteDialog(Dish dish) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete ${dish.name}?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Delete'),
+              onPressed: () async {
+                await _controller.deleteDish(dish.id!);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Dish Name',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              Text('Actions', style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<List<Dish>>(
+            stream: _controller.getDishes,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No menu items found.'));
+              }
+              final dishes = snapshot.data!;
+              return ListView.builder(
+                controller: _scrollController,
+                itemCount: dishes.length,
+                itemBuilder: (context, index) {
+                  final dish = dishes[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 60,
+                            height: 60,
+                            child: dish.imageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      dish.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.image_not_supported,
+                                                size: 60,
+                                              ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.image_not_supported,
+                                    size: 60,
+                                  ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  dish.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${dish.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  'Visible: ${dish.isVisible ? 'True' : 'False'}',
+                                ),
+                                Text(
+                                  'Available: ${dish.isAvailable ? 'True' : 'False'}',
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ModifyDishPage(
+                                        dishId: dish.id,
+                                        dish: dish,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _showDeleteDialog(dish),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+}
+
+
+// pages\manager\modify_dish_page.dart
+import 'package:flutter/material.dart' hide MenuController;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
+import 'package:bbqlagao_and_beefpares/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/models/dish.dart';
+import 'package:bbqlagao_and_beefpares/models/item.dart';
+
+class ModifyDishPage extends StatefulWidget {
+  final String? dishId;
+  final Dish? dish;
+
+  const ModifyDishPage({super.key, this.dishId, this.dish});
+
+  @override
+  State<ModifyDishPage> createState() => _ModifyDishPageState();
+}
+
+class _ModifyDishPageState extends State<ModifyDishPage> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameCtrl;
+  late TextEditingController _descCtrl;
+  late TextEditingController _priceCtrl;
+  late TextEditingController _imageUrlCtrl;
+  late bool _isVisible;
+  final MenuController _menuController = MenuController();
+  final InventoryController _inventoryController = InventoryController();
+  List<Map<String, dynamic>> _selectedIngredients = [];
+  double _price = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.dish?.name ?? '');
+    _descCtrl = TextEditingController(text: widget.dish?.description ?? '');
+    _priceCtrl = TextEditingController(
+      text: widget.dish?.price.toStringAsFixed(2) ?? '0.00',
+    );
+    _imageUrlCtrl = TextEditingController(text: widget.dish?.imageUrl ?? '');
+    _isVisible = widget.dish?.isVisible ?? true;
+    _price = widget.dish?.price ?? 0.0;
+    if (widget.dish != null) {
+      _selectedIngredients = List<Map<String, dynamic>>.from(
+        widget.dish!.ingredients
+            .where((ing) => ing['itemId'] != null)
+            .map((ing) => {'id': ing['itemId'], 'quantity': ing['quantity']}),
+      );
+      _loadIngredientNames();
+    }
+  }
+
+  Future<void> _loadIngredientNames() async {
+    final List<Map<String, dynamic>> updated = [];
+    for (final ing in _selectedIngredients) {
+      if (ing['id'] == null) continue;
+      final doc = await FirebaseFirestore.instance
+          .collection('inventory')
+          .doc(ing['id'])
+          .get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        updated.add({
+          'id': ing['id'],
+          'name': data['name'] ?? 'Unknown',
+          'quantity': ing['quantity'],
+        });
+      } else {
+        if (mounted) {
+          Toast.show(context, 'Item Unavailable/Deleted');
+        }
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _selectedIngredients = updated;
+      });
+    }
+  }
+
+  void _incrementPrice() {
+    setState(() {
+      _price += 0.01;
+      _priceCtrl.text = _price.toStringAsFixed(2);
+    });
+  }
+
+  void _decrementPrice() {
+    if (_price > 0) {
+      setState(() {
+        _price -= 0.01;
+        _priceCtrl.text = _price.toStringAsFixed(2);
+      });
+    }
+  }
+
+  void _addIngredient() {
+    showDialog(
+      context: context,
+      builder: (context) => _IngredientSelectionDialog(
+        inventoryController: _inventoryController,
+        selectedIngredients: _selectedIngredients,
+        onSelected: (id, name, quantity) {
+          setState(() {
+            _selectedIngredients.add({
+              'id': id,
+              'name': name,
+              'quantity': quantity,
+            });
+          });
+        },
+      ),
+    );
+  }
+
+  void _updateIngredientQuantity(String id, int newQuantity) {
+    setState(() {
+      final index = _selectedIngredients.indexWhere((ing) => ing['id'] == id);
+      if (index != -1 && newQuantity >= 0) {
+        _selectedIngredients[index]['quantity'] = newQuantity;
+      }
+    });
+  }
+
+  void _removeIngredient(String id) {
+    setState(() {
+      _selectedIngredients.removeWhere((ing) => ing['id'] == id);
+    });
+  }
+
+  Future<bool> _computeAvailability() async {
+    for (final ing in _selectedIngredients) {
+      if (ing['id'] == null) return false;
+      final doc = await FirebaseFirestore.instance
+          .collection('inventory')
+          .doc(ing['id'])
+          .get();
+      if (!doc.exists || (doc.data()?['quantity'] ?? 0) < ing['quantity']) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Widget _buildImagePreview() {
+    if (_imageUrlCtrl.text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          _imageUrlCtrl.text,
+          height: 200,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIngredientsList() {
+    return SizedBox(
+      height: 200,
+      child: SingleChildScrollView(
+        child: ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _selectedIngredients.length,
+          itemBuilder: (context, index) {
+            final ing = _selectedIngredients[index];
+            return Card(
+              child: ListTile(
+                title: Text(ing['name'] ?? 'Unknown'),
+                subtitle: Text('Quantity: ${ing['quantity']}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove),
+                      onPressed: () => _updateIngredientQuantity(
+                        ing['id'],
+                        (ing['quantity'] as int) - 1,
+                      ),
+                    ),
+                    Text('${ing['quantity']}'),
+                    IconButton(
+                      icon: const Icon(Icons.add),
+                      onPressed: () => _updateIngredientQuantity(
+                        ing['id'],
+                        (ing['quantity'] as int) + 1,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _removeIngredient(ing['id']),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.dishId != null ? 'Edit Dish' : 'New Dish';
+    final buttonText = widget.dishId != null ? 'Update Dish' : 'Add Dish';
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Dish Name',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Dish name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: _decrementPrice,
+                          ),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _priceCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Price',
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: (value) {
+                                if (value == null ||
+                                    double.tryParse(value) == null) {
+                                  return 'Please enter a valid price';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: _incrementPrice,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text('Publish Dish'),
+                        value: _isVisible,
+                        onChanged: (value) =>
+                            setState(() => _isVisible = value),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _addIngredient,
+                        child: const Text('Add Ingredient'),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Selected Ingredients:'),
+                      _buildIngredientsList(),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _imageUrlCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Image URL',
+                        ),
+                      ),
+                      _buildImagePreview(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      final bool available = await _computeAvailability();
+                      final ingredientsForSave = _selectedIngredients
+                          .where((ing) => ing['id'] != null)
+                          .map(
+                            (ing) => {
+                              'itemId': ing['id'],
+                              'quantity': ing['quantity'],
+                            },
+                          )
+                          .toList();
+                      final newDish = Dish(
+                        id: widget.dishId,
+                        name: _nameCtrl.text,
+                        description: _descCtrl.text.isEmpty
+                            ? null
+                            : _descCtrl.text,
+                        price: double.parse(_priceCtrl.text),
+                        isVisible: _isVisible,
+                        isAvailable: available,
+                        ingredients: ingredientsForSave,
+                        imageUrl: _imageUrlCtrl.text.isEmpty
+                            ? null
+                            : _imageUrlCtrl.text,
+                      );
+                      if (widget.dishId == null) {
+                        await _menuController.addDish(newDish);
+                      } else {
+                        await _menuController.updateDish(
+                          widget.dishId!,
+                          newDish,
+                        );
+                      }
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                  child: Text(buttonText),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    _priceCtrl.dispose();
+    _imageUrlCtrl.dispose();
+    super.dispose();
+  }
+}
+
+class _IngredientSelectionDialog extends StatefulWidget {
+  final InventoryController inventoryController;
+  final List<Map<String, dynamic>>? selectedIngredients;
+  final Function(String, String, int) onSelected;
+
+  const _IngredientSelectionDialog({
+    required this.inventoryController,
+    this.selectedIngredients,
+    required this.onSelected,
+  });
+
+  @override
+  State<_IngredientSelectionDialog> createState() =>
+      _IngredientSelectionDialogState();
+}
+
+class _IngredientSelectionDialogState
+    extends State<_IngredientSelectionDialog> {
+  final _quantityController = TextEditingController(text: '1');
+  Item? _selectedItem;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Select Ingredient'),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 300,
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<Item>>(
+                stream: widget.inventoryController.getItems,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    final items = snapshot.data!;
+                    return ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final alreadyAdded =
+                            widget.selectedIngredients?.any(
+                              (ing) => ing['id'] == item.id,
+                            ) ??
+                            false;
+                        return ListTile(
+                          title: Text(item.name),
+                          enabled: !alreadyAdded,
+                          onTap: alreadyAdded
+                              ? null
+                              : () => setState(() => _selectedItem = item),
+                          selected: _selectedItem?.id == item.id,
+                        );
+                      },
+                    );
+                  }
+                  return const CircularProgressIndicator();
+                },
+              ),
+            ),
+            TextField(
+              controller: _quantityController,
+              decoration: const InputDecoration(labelText: 'Quantity'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _selectedItem != null
+              ? () {
+                  final qty = int.tryParse(_quantityController.text) ?? 1;
+                  widget.onSelected(
+                    _selectedItem!.id!,
+                    _selectedItem!.name,
+                    qty,
+                  );
+                  Navigator.pop(context);
+                }
+              : null,
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
+  }
+}
+
+
+// pages\manager\modify_item_page.dart
+import 'package:flutter/material.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/item.dart';
+
+class ModifyItemPage extends StatefulWidget {
+  final String? itemId;
+  final Item? item;
+
+  const ModifyItemPage({super.key, this.itemId, this.item});
+
+  @override
+  State<ModifyItemPage> createState() => _ModifyItemPageState();
+}
+
+class _ModifyItemPageState extends State<ModifyItemPage> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameCtrl;
+  late TextEditingController _descCtrl;
+  late TextEditingController _qtyCtrl;
+  late TextEditingController _imageUrlCtrl;
+  int _quantity = 0;
+  final InventoryController _controller = InventoryController();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.item?.name ?? '');
+    _descCtrl = TextEditingController(text: widget.item?.description ?? '');
+    _qtyCtrl = TextEditingController(text: '${widget.item?.quantity ?? 0}');
+    _imageUrlCtrl = TextEditingController(text: widget.item?.imageUrl ?? '');
+    _quantity = widget.item?.quantity ?? 0;
+  }
+
+  void _incrementQty() {
+    setState(() {
+      _quantity++;
+      _qtyCtrl.text = _quantity.toString();
+    });
+  }
+
+  void _decrementQty() {
+    if (_quantity > 0) {
+      setState(() {
+        _quantity--;
+        _qtyCtrl.text = _quantity.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.itemId != null ? 'Edit Item' : 'New Item';
+    final buttonText = widget.itemId != null ? 'Update Item' : 'Add Item';
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(labelText: 'Item Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Item name is required';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 5,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: _decrementQty,
+                  ),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _qtyCtrl,
+                      decoration: const InputDecoration(labelText: 'Quantity'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || int.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: _incrementQty,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _imageUrlCtrl,
+                decoration: const InputDecoration(labelText: 'Image URL'),
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        final newItem = Item(
+                          id: widget.itemId ?? '',
+                          name: _nameCtrl.text,
+                          description: _descCtrl.text.isEmpty
+                              ? null
+                              : _descCtrl.text,
+                          quantity: int.parse(_qtyCtrl.text),
+                          imageUrl: _imageUrlCtrl.text.isEmpty
+                              ? null
+                              : _imageUrlCtrl.text,
+                        );
+                        if (widget.itemId == null) {
+                          await _controller.addItem(newItem);
+                        } else {
+                          await _controller.updateItem(widget.itemId!, newItem);
+                        }
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      }
+                    },
+                    child: Text(
+                      buttonText,
+                      style: TextStyle(color: Colors.orangeAccent[200]),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    _qtyCtrl.dispose();
+    _imageUrlCtrl.dispose();
+    super.dispose();
+  }
+}
+
+
+// pages\manager\staff_home_page.dart
+// lib/pages/manager/staff_home_page.dart
+import 'package:flutter/material.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/inventory_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/menu_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/modify_item_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/modify_dish_page.dart';
+
+class StaffHomePage extends StatefulWidget {
+  const StaffHomePage({super.key});
+
+  @override
+  State<StaffHomePage> createState() => _StaffHomePageState();
+}
+
+class _StaffHomePageState extends State<StaffHomePage> {
+  String _currentPage = 'menu';
+  String _appBarTitle = 'Staff Dashboard';
+  late ValueNotifier<bool> _showFabNotifier;
+  bool _isManagementExpanded = true;
+
+  void _onFabVisibilityChanged(bool visible) {
+    _showFabNotifier.value = visible;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _showFabNotifier = ValueNotifier<bool>(true);
+  }
+
+  @override
+  void dispose() {
+    _showFabNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_appBarTitle, style: TextStyle(color: Colors.white)),
+        flexibleSpace: _currentPage == 'inventory' || _currentPage == 'menu'
+            ? Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.redAccent, Colors.red, Colors.orangeAccent],
+                  ),
+                ),
+              )
+            : null,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+      ),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            Container(
+              height: 75.0,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.redAccent, Colors.red, Colors.orangeAccent],
+                ),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Staff Menu',
+                      style: TextStyle(color: Colors.white, fontSize: 24),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  ExpansionTile(
+                    initiallyExpanded: _isManagementExpanded,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        _isManagementExpanded = expanded;
+                      });
+                    },
+                    title: const Text(
+                      'Inventory Management',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                    leading: const Icon(
+                      Icons.business,
+                      color: Colors.redAccent,
+                    ),
+                    children: <Widget>[
+                      ListTile(
+                        leading: Icon(
+                          Icons.restaurant_menu,
+                          color: _currentPage == 'menu'
+                              ? Colors.white
+                              : Colors.redAccent,
+                        ),
+                        title: Text(
+                          'Menu',
+                          style: TextStyle(
+                            color: _currentPage == 'menu'
+                                ? Colors.white
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        selected: _currentPage == 'menu',
+                        selectedTileColor: Colors.redAccent.withValues(
+                          alpha: .75,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _currentPage = 'menu';
+                            _appBarTitle = 'Menu';
+                          });
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.inventory,
+                          color: _currentPage == 'inventory'
+                              ? Colors.white
+                              : Colors.redAccent,
+                        ),
+                        title: Text(
+                          'Inventory',
+                          style: TextStyle(
+                            color: _currentPage == 'inventory'
+                                ? Colors.white
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        selected: _currentPage == 'inventory',
+                        selectedTileColor: Colors.redAccent.withValues(
+                          alpha: .75,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _currentPage = 'inventory';
+                            _appBarTitle = 'Inventory';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_left),
+                  onPressed: () => Navigator.pop(context),
+                  tooltip: 'Close menu',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: _buildBody(),
+      floatingActionButton:
+          (_currentPage == 'inventory' || _currentPage == 'menu')
+          ? ValueListenableBuilder<bool>(
+              valueListenable: _showFabNotifier,
+              builder: (context, showFab, child) {
+                if (!showFab) return const SizedBox.shrink();
+                return FloatingActionButton(
+                  backgroundColor: Colors.redAccent[100],
+                  shape: const CircleBorder(),
+                  foregroundColor: Colors.white,
+                  onPressed: () {
+                    if (_currentPage == 'inventory') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModifyItemPage(),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModifyDishPage(),
+                        ),
+                      );
+                    }
+                  },
+                  tooltip: 'Add Item',
+                  child: const Icon(Icons.add),
+                );
+              },
+            )
+          : null,
+    );
+  }
+
+  Widget _buildBody() {
+    switch (_currentPage) {
+      case 'menu':
+        return MenuPage(onFabVisibilityChanged: _onFabVisibilityChanged);
+      case 'inventory':
+        return InventoryPage(onFabVisibilityChanged: _onFabVisibilityChanged);
+      default:
+        return const Center(child: Text('Page not implemented'));
+    }
+  }
+}
+
+

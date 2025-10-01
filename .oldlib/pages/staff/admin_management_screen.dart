@@ -1,8 +1,8 @@
 // lib/views/admin/admin_management_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/controllers/admin/admin_controller.dart';
-import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'package:bbqlagao_and_beefpares/.old/controllers/staff/admin_controller.dart';
+import 'package:bbqlagao_and_beefpares/.old/models/user.dart';
 
 // Start modification: Updated to use User model, removed password field from edit dialog since not editable
 class AdminManagementScreen extends ConsumerWidget {

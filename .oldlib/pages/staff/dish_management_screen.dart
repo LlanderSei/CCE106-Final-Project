@@ -1,10 +1,10 @@
 // lib/views/admin/dish_management_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/controllers/admin/dish_controller.dart';
-import 'package:bbqlagao_and_beefpares/controllers/admin/inventory_controller.dart';
-import 'package:bbqlagao_and_beefpares/models/admin/dish.dart';
-import 'package:bbqlagao_and_beefpares/models/admin/ingredient.dart';
+import 'package:bbqlagao_and_beefpares/.old/controllers/staff/dish_controller.dart';
+import 'package:bbqlagao_and_beefpares/.old/controllers/staff/inventory_controller.dart';
+import 'package:bbqlagao_and_beefpares/.old/models/admin/dish.dart';
+import 'package:bbqlagao_and_beefpares/.old/models/admin/ingredient.dart';
 
 class DishManagementScreen extends ConsumerWidget {
   const DishManagementScreen({super.key});

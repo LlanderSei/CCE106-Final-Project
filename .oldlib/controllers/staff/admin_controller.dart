@@ -1,5 +1,5 @@
 // lib/controllers/admin/admin_controller.dart
-import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'package:bbqlagao_and_beefpares/.old/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter_riverpod/legacy.dart';

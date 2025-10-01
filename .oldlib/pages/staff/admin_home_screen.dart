@@ -1,11 +1,11 @@
 // lib/views/admin/admin_home_screen.dart
-import 'package:bbqlagao_and_beefpares/views/admin/admin_management_screen.dart';
+import 'package:bbqlagao_and_beefpares/.old/pages/staff/admin_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/views/admin/dish_management_screen.dart';
-import 'package:bbqlagao_and_beefpares/views/admin/inventory_screen.dart';
-import 'package:bbqlagao_and_beefpares/controllers/admin/auth_controller.dart';
-import 'package:bbqlagao_and_beefpares/views/admin/dashboard_screen.dart';
+import 'package:bbqlagao_and_beefpares/.old/pages/staff/dish_management_screen.dart';
+import 'package:bbqlagao_and_beefpares/.old/pages/staff/inventory_screen.dart';
+import 'package:bbqlagao_and_beefpares/.old/controllers/staff/auth_controller.dart';
+import 'package:bbqlagao_and_beefpares/.old/pages/staff/dashboard_screen.dart';
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
   const AdminHomeScreen({super.key});

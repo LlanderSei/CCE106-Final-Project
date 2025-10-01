@@ -1,7 +1,7 @@
 // lib/views/auth/auth_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bbqlagao_and_beefpares/controllers/admin/auth_controller.dart';
+import 'package:bbqlagao_and_beefpares/.old/controllers/staff/auth_controller.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
