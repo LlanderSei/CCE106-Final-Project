@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "824723117356",
+    "project_id": "bbq-lagao-and-beef-pares",
+    "storage_bucket": "bbq-lagao-and-beef-pares.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824723117356:android:bf29240e55602154214889",
+        "android_client_info": {
+          "package_name": "com.example.bbqlagao_and_beefpares"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAGUO8Pd0pWM0oqOVoYsU0ueSt8DeNaQs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
