@@ -1,9 +1,11 @@
-// lib/pages/manager/staff_home_page.dart
+// pages\manager\staff_home_page.dart
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/inventory_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/menu_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/staff_list_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_item_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_dish_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/modify_user_page.dart';
 
 class StaffHomePage extends StatefulWidget {
   const StaffHomePage({super.key});
@@ -15,8 +17,10 @@ class StaffHomePage extends StatefulWidget {
 class _StaffHomePageState extends State<StaffHomePage> {
   String _currentPage = 'menu';
   String _appBarTitle = 'Staff Dashboard';
+  String _tooltip = 'Add Menu';
   late ValueNotifier<bool> _showFabNotifier;
   bool _isManagementExpanded = true;
+  bool _isUserManagementExpanded = true;
 
   void _onFabVisibilityChanged(bool visible) {
     _showFabNotifier.value = visible;
@@ -38,8 +42,23 @@ class _StaffHomePageState extends State<StaffHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_appBarTitle, style: TextStyle(color: Colors.white)),
-        flexibleSpace: _currentPage == 'inventory' || _currentPage == 'menu'
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_appBarTitle != 'Staff Dashboard')
+              Text(
+                'Staff Dashboard',
+                style: TextStyle(color: Colors.white, fontSize: 10),
+              ),
+            Text(_appBarTitle, style: TextStyle(color: Colors.white)),
+          ],
+        ),
+
+        flexibleSpace:
+            _currentPage == 'inventory' ||
+                _currentPage == 'menu' ||
+                _currentPage == 'staffs'
             ? Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -53,6 +72,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
+            color: Colors.white,
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
@@ -71,14 +91,18 @@ class _StaffHomePageState extends State<StaffHomePage> {
                 ),
               ),
               child: const Padding(
-                padding: EdgeInsets.all(5),
+                padding: EdgeInsets.all(2),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      'Staff Menu',
-                      style: TextStyle(color: Colors.white, fontSize: 24),
+                      'BBQ Lagao & Beef Pares',
+                      style: TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                    Text(
+                      'Staff Navigation',
+                      style: TextStyle(color: Colors.white, fontSize: 20),
                     ),
                   ],
                 ),
@@ -121,13 +145,14 @@ class _StaffHomePageState extends State<StaffHomePage> {
                         ),
                         selected: _currentPage == 'menu',
                         selectedTileColor: Colors.redAccent.withValues(
-                          alpha: .75,
+                          alpha: 0.75,
                         ),
                         onTap: () {
                           Navigator.pop(context);
                           setState(() {
                             _currentPage = 'menu';
                             _appBarTitle = 'Menu';
+                            _tooltip = 'Add Menu';
                           });
                         },
                       ),
@@ -155,6 +180,50 @@ class _StaffHomePageState extends State<StaffHomePage> {
                           setState(() {
                             _currentPage = 'inventory';
                             _appBarTitle = 'Inventory';
+                            _tooltip = 'Add Item';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  ExpansionTile(
+                    initiallyExpanded: _isUserManagementExpanded,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        _isUserManagementExpanded = expanded;
+                      });
+                    },
+                    title: const Text(
+                      'User Management',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                    leading: const Icon(Icons.people, color: Colors.redAccent),
+                    children: <Widget>[
+                      ListTile(
+                        leading: Icon(
+                          Icons.person,
+                          color: _currentPage == 'staffs'
+                              ? Colors.white
+                              : Colors.redAccent,
+                        ),
+                        title: Text(
+                          'Staffs',
+                          style: TextStyle(
+                            color: _currentPage == 'staffs'
+                                ? Colors.white
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        selected: _currentPage == 'staffs',
+                        selectedTileColor: Colors.redAccent.withValues(
+                          alpha: .75,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _currentPage = 'staffs';
+                            _appBarTitle = 'Staffs';
+                            _tooltip = 'Add Staff';
                           });
                         },
                       ),
@@ -179,7 +248,9 @@ class _StaffHomePageState extends State<StaffHomePage> {
       ),
       body: _buildBody(),
       floatingActionButton:
-          (_currentPage == 'inventory' || _currentPage == 'menu')
+          (_currentPage == 'inventory' ||
+              _currentPage == 'menu' ||
+              _currentPage == 'staffs')
           ? ValueListenableBuilder<bool>(
               valueListenable: _showFabNotifier,
               builder: (context, showFab, child) {
@@ -196,16 +267,23 @@ class _StaffHomePageState extends State<StaffHomePage> {
                           builder: (context) => const ModifyItemPage(),
                         ),
                       );
-                    } else {
+                    } else if (_currentPage == 'menu') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const ModifyDishPage(),
                         ),
                       );
+                    } else if (_currentPage == 'staffs') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModifyUserPage(),
+                        ),
+                      );
                     }
                   },
-                  tooltip: 'Add Item',
+                  tooltip: _tooltip,
                   child: const Icon(Icons.add),
                 );
               },
@@ -220,6 +298,8 @@ class _StaffHomePageState extends State<StaffHomePage> {
         return MenuPage(onFabVisibilityChanged: _onFabVisibilityChanged);
       case 'inventory':
         return InventoryPage(onFabVisibilityChanged: _onFabVisibilityChanged);
+      case 'staffs':
+        return StaffListPage(onFabVisibilityChanged: _onFabVisibilityChanged);
       default:
         return const Center(child: Text('Page not implemented'));
     }

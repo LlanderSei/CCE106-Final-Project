@@ -208,152 +208,173 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
     final title = widget.dishId != null ? 'Edit Dish' : 'New Dish';
     final buttonText = widget.dishId != null ? 'Update Dish' : 'Add Dish';
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(title: Text(title)),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _nameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Dish Name',
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0).copyWith(bottom: 80.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Dish Name'),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Dish name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const Divider(),
+                    const Text('Description'),
+                    TextFormField(
+                      controller: _descCtrl,
+                      decoration: const InputDecoration(),
+                      maxLines: 3,
+                    ),
+                    const Divider(),
+                    const Text('Price'),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove),
+                          onPressed: _decrementPrice,
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Dish name is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _descCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
-                        ),
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove),
-                            onPressed: _decrementPrice,
-                          ),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _priceCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Price',
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: (value) {
-                                if (value == null ||
-                                    double.tryParse(value) == null) {
-                                  return 'Please enter a valid price';
-                                }
-                                return null;
-                              },
+                        Expanded(
+                          child: TextFormField(
+                            controller: _priceCtrl,
+                            decoration: const InputDecoration(),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
                             ),
+                            validator: (value) {
+                              if (value == null ||
+                                  double.tryParse(value) == null) {
+                                return 'Please enter a valid price';
+                              }
+                              return null;
+                            },
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.add),
-                            onPressed: _incrementPrice,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SwitchListTile(
-                        title: const Text('Publish Dish'),
-                        value: _isVisible,
-                        onChanged: (value) =>
-                            setState(() => _isVisible = value),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _incrementPrice,
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    Row(
+                      children: [
+                        const Text('Publish Dish'),
+                        const Spacer(),
+                        Switch(
+                          value: _isVisible,
+                          onChanged: (value) =>
+                              setState(() => _isVisible = value),
+                          activeThumbColor: Colors.amber,
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
                         onPressed: _addIngredient,
-                        child: const Text('Add Ingredient'),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Selected Ingredients:'),
-                      _buildIngredientsList(),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _imageUrlCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Image URL',
+                        child: Text(
+                          'Add Ingredient',
+                          style: TextStyle(color: Colors.amber[300]),
                         ),
                       ),
-                      _buildImagePreview(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Selected Ingredients:'),
+                    _buildIngredientsList(),
+                    const Divider(),
+                    const Text('Image URL'),
+                    TextFormField(
+                      controller: _imageUrlCtrl,
+                      decoration: const InputDecoration(),
+                    ),
+                    _buildImagePreview(),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      final bool available = await _computeAvailability();
-                      final ingredientsForSave = _selectedIngredients
-                          .where((ing) => ing['id'] != null)
-                          .map(
-                            (ing) => {
-                              'itemId': ing['id'],
-                              'quantity': ing['quantity'],
-                            },
-                          )
-                          .toList();
-                      final newDish = Dish(
-                        id: widget.dishId,
-                        name: _nameCtrl.text,
-                        description: _descCtrl.text.isEmpty
-                            ? null
-                            : _descCtrl.text,
-                        price: double.parse(_priceCtrl.text),
-                        isVisible: _isVisible,
-                        isAvailable: available,
-                        ingredients: ingredientsForSave,
-                        imageUrl: _imageUrlCtrl.text.isEmpty
-                            ? null
-                            : _imageUrlCtrl.text,
-                      );
-                      if (widget.dishId == null) {
-                        await _menuController.addDish(newDish);
-                      } else {
-                        await _menuController.updateDish(
-                          widget.dishId!,
-                          newDish,
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.redAccent),
+                      foregroundColor: Colors.redAccent,
+                      backgroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                    ),
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        final bool available = await _computeAvailability();
+                        final ingredientsForSave = _selectedIngredients
+                            .where((ing) => ing['id'] != null)
+                            .map(
+                              (ing) => {
+                                'itemId': ing['id'],
+                                'quantity': ing['quantity'],
+                              },
+                            )
+                            .toList();
+                        final newDish = Dish(
+                          id: widget.dishId,
+                          name: _nameCtrl.text,
+                          description: _descCtrl.text.isEmpty
+                              ? null
+                              : _descCtrl.text,
+                          price: double.parse(_priceCtrl.text),
+                          isVisible: _isVisible,
+                          isAvailable: available,
+                          ingredients: ingredientsForSave,
+                          imageUrl: _imageUrlCtrl.text.isEmpty
+                              ? null
+                              : _imageUrlCtrl.text,
                         );
+                        if (widget.dishId == null) {
+                          await _menuController.addDish(newDish);
+                        } else {
+                          await _menuController.updateDish(
+                            widget.dishId!,
+                            newDish,
+                          );
+                        }
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                       }
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                  child: Text(buttonText),
-                ),
-              ],
+                    },
+                    child: Text(
+                      buttonText,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -448,6 +469,7 @@ class _IngredientSelectionDialogState
                               ? null
                               : () => setState(() => _selectedItem = item),
                           selected: _selectedItem?.id == item.id,
+                          selectedColor: Colors.orange,
                         );
                       },
                     );
@@ -467,7 +489,7 @@ class _IngredientSelectionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text('Cancel', style: TextStyle(color: Colors.orange)),
         ),
         ElevatedButton(
           onPressed: _selectedItem != null
@@ -481,7 +503,7 @@ class _IngredientSelectionDialogState
                   Navigator.pop(context);
                 }
               : null,
-          child: const Text('Add'),
+          child: Text('Add', style: TextStyle(color: Colors.orange)),
         ),
       ],
     );

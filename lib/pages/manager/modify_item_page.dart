@@ -52,73 +52,96 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
     final title = widget.itemId != null ? 'Edit Item' : 'New Item';
     final buttonText = widget.itemId != null ? 'Update Item' : 'Add Item';
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(title: Text(title)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Item Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Item name is required';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descCtrl,
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 5,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove),
-                    onPressed: _decrementQty,
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _qtyCtrl,
-                      decoration: const InputDecoration(labelText: 'Quantity'),
-                      keyboardType: TextInputType.number,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0).copyWith(bottom: 80.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Item Name'),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      decoration: const InputDecoration(),
                       validator: (value) {
-                        if (value == null || int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
+                        if (value == null || value.isEmpty) {
+                          return 'Item name is required';
                         }
                         return null;
                       },
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: _incrementQty,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _imageUrlCtrl,
-                decoration: const InputDecoration(labelText: 'Image URL'),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.redAccent),
+                    const Divider(),
+                    const Text('Description'),
+                    TextFormField(
+                      controller: _descCtrl,
+                      decoration: const InputDecoration(),
+                      maxLines: 5,
                     ),
+                    const Divider(),
+                    const Text('Quantity'),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove),
+                          onPressed: _decrementQty,
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _qtyCtrl,
+                            decoration: const InputDecoration(),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null ||
+                                  int.tryParse(value) == null) {
+                                return 'Please enter a valid number';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _incrementQty,
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    const Text('Image URL'),
+                    TextFormField(
+                      controller: _imageUrlCtrl,
+                      decoration: const InputDecoration(),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.redAccent),
+                      foregroundColor: Colors.redAccent,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent,
+                    ),
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
                         final newItem = Item(
@@ -144,14 +167,14 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
                     },
                     child: Text(
                       buttonText,
-                      style: TextStyle(color: Colors.orangeAccent[200]),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

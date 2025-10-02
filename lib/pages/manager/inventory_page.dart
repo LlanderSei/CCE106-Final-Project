@@ -1,4 +1,3 @@
-// lib/pages/manager/inventory_page.dart
 import 'package:bbqlagao_and_beefpares/customtoast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -100,18 +99,26 @@ class _InventoryPageState extends State<InventoryPage> {
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  return Card(
+                  return Container(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.red[50]!, Colors.orange[50]!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
                         children: [
                           SizedBox(
-                            width: 50,
-                            height: 50,
+                            width: 60,
+                            height: 60,
                             child: item.imageUrl != null
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
@@ -119,15 +126,16 @@ class _InventoryPageState extends State<InventoryPage> {
                                       item.imageUrl!,
                                       fit: BoxFit.cover,
                                       errorBuilder:
-                                          (context, error, stackTrace) => Icon(
-                                            Icons.image_not_supported,
-                                            size: 50,
-                                          ),
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.image_not_supported,
+                                                size: 60,
+                                              ),
                                     ),
                                   )
                                 : const Icon(
                                     Icons.image_not_supported,
-                                    size: 50,
+                                    size: 60,
                                   ),
                           ),
                           const SizedBox(width: 16),
@@ -169,13 +177,13 @@ class _InventoryPageState extends State<InventoryPage> {
                                   );
                                 },
                                 onLongPress: () =>
-                                    Toast.show(context, 'Edit Item'),
+                                    Toast.show(context, "Edit Item"),
                               ),
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => _showDeleteDialog(item),
                                 onLongPress: () =>
-                                    Toast.show(context, 'Delete Item'),
+                                    Toast.show(context, "Delete Item"),
                               ),
                             ],
                           ),

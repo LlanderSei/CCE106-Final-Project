@@ -1,9 +1,8 @@
-// lib/pages/manager/menu_page.dart
 import 'package:bbqlagao_and_beefpares/customtoast.dart';
 import 'package:flutter/material.dart' hide MenuController;
 import 'package:flutter/rendering.dart';
-import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
-import 'package:bbqlagao_and_beefpares/models/dish.dart';
+import '../../controllers/manager/menu_controller.dart';
+import '../../models/dish.dart';
 import 'modify_dish_page.dart';
 
 class MenuPage extends StatefulWidget {
@@ -100,10 +99,18 @@ class _MenuPageState extends State<MenuPage> {
                 itemCount: dishes.length,
                 itemBuilder: (context, index) {
                   final dish = dishes[index];
-                  return Card(
+                  return Container(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.red[50]!, Colors.orange[50]!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -143,7 +150,7 @@ class _MenuPageState extends State<MenuPage> {
                                   ),
                                 ),
                                 Text(
-                                  '\$${dish.price.toStringAsFixed(2)}',
+                                  '₱${dish.price.toStringAsFixed(2)}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 Text(
@@ -175,7 +182,7 @@ class _MenuPageState extends State<MenuPage> {
                                   );
                                 },
                                 onLongPress: () =>
-                                    Toast.show(context, 'Edit Dish'),
+                                    Toast.show(context, "Edit Menu"),
                               ),
                               IconButton(
                                 icon: const Icon(
@@ -184,7 +191,7 @@ class _MenuPageState extends State<MenuPage> {
                                 ),
                                 onPressed: () => _showDeleteDialog(dish),
                                 onLongPress: () =>
-                                    Toast.show(context, 'Delete Dish'),
+                                    Toast.show(context, "Delete Menu"),
                               ),
                             ],
                           ),

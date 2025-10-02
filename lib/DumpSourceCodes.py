@@ -26,4 +26,5 @@ with open(output_path, "w", encoding="utf-8") as out:
           out.write(f.read())
       except:
         out.write("[[binary or unreadable file skipped]]")
+      out.write(f"// END OF FILE for {rel_path}\n")
       out.write("\n\n")
