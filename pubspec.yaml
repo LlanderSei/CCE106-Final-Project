@@ -1,6 +1,6 @@
 name: bbqlagao_and_beefpares
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -14,6 +14,9 @@ dependencies:
   flutter_riverpod: ^3.0.0
   crypto: ^3.0.6
   firebase_auth: ^6.0.2
+  gradient_icon: ^2.0.9
+  intl: ^0.20.2
+  font_awesome_flutter: ^10.10.0
 
 dev_dependencies:
   flutter_test:

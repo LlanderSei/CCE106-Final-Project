@@ -1,8 +1,12 @@
-// pages/cashier/serving_tab_page.dart
+//serving_tab_page.dart
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/order.dart';
-import 'package:bbqlagao_and_beefpares/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:gradient_icon/gradient_icon.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/order_details_page.dart';
 
 class ServingTabPage extends StatelessWidget {
   const ServingTabPage({super.key});
@@ -31,7 +35,7 @@ class ServingTabPage extends StatelessWidget {
             stream: _controller.getOrdersByStatus('serving'),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: GradientCircularProgressIndicator());
               }
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
@@ -76,12 +80,43 @@ class ServingTabPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.visibility,
-                              color: Colors.blue,
-                            ),
-                            onPressed: () => Toast.show(context, 'View Order'),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.check,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set1,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
+                                onPressed: () async {
+                                  try {
+                                    await _controller.updateOrderStatus(order.id!, 'completed');
+                                    Toast.show('Order completed');
+                                  } catch (e) {
+                                    Toast.show('Error: $e');
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.visibility,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set3,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => OrderDetailsPage(order: order),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),

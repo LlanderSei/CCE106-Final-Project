@@ -1,8 +1,13 @@
-import 'package:bbqlagao_and_beefpares/customtoast.dart';
+// inventory_page.dart
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/item.dart';
+import 'package:gradient_icon/gradient_icon.dart';
 import 'modify_item_page.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -34,29 +39,54 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   void _showDeleteDialog(Item item) {
+    bool isDeleting = false;
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Delete'),
-          content: Text('Are you sure you want to delete ${item.name}?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Delete'),
-              onPressed: () async {
-                await _controller.deleteItem(item.id!);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Confirm Delete'),
+              content: Text('Are you sure you want to delete ${item.name}?'),
+              actions: <Widget>[
+                if (!isDeleting)
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.orangeAccent),
+                      foregroundColor: Colors.orangeAccent,
+                    ),
+                    child: const Text('Cancel'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                if (!isDeleting)
+                  GradientButton(
+                    colors: GradientColorSets.set2,
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: () async {
+                      setState(() => isDeleting = true);
+                      try {
+                        await _controller.deleteItem(item.id!);
+                      } catch (e) {
+                        if (context.mounted) {
+                          Toast.show('Error deleting: $e');
+                        }
+                        setState(() => isDeleting = false);
+                        return;
+                      }
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                if (isDeleting) const GradientCircularProgressIndicator(),
+              ],
+            );
+          },
         );
       },
     );
@@ -85,7 +115,7 @@ class _InventoryPageState extends State<InventoryPage> {
             stream: _controller.getItems,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: GradientCircularProgressIndicator());
               }
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
@@ -164,7 +194,13 @@ class _InventoryPageState extends State<InventoryPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: Icon(Icons.edit, color: Colors.blue),
+                                icon: GradientIcon(
+                                  icon: Icons.edit,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
@@ -176,14 +212,18 @@ class _InventoryPageState extends State<InventoryPage> {
                                     ),
                                   );
                                 },
-                                onLongPress: () =>
-                                    Toast.show(context, "Edit Item"),
+                                tooltip: "Edit Item",
                               ),
                               IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
+                                icon: GradientIcon(
+                                  icon: Icons.delete,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
                                 onPressed: () => _showDeleteDialog(item),
-                                onLongPress: () =>
-                                    Toast.show(context, "Delete Item"),
+                                tooltip: "Delete Item",
                               ),
                             ],
                           ),

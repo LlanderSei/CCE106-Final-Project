@@ -1,8 +1,12 @@
-import 'package:bbqlagao_and_beefpares/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/users_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gradient_icon/gradient_icon.dart';
 import 'modify_user_page.dart';
 
 class StaffListPage extends StatefulWidget {
@@ -55,7 +59,7 @@ class _StaffListPageState extends State<StaffListPage> {
             stream: _controller.getUsers,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: GradientCircularProgressIndicator());
               }
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
@@ -103,7 +107,13 @@ class _StaffListPageState extends State<StaffListPage> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            icon: GradientIcon(
+                              icon: Icons.edit,
+                              gradient: LinearGradient(
+                                colors: GradientColorSets.set2,
+                              ),
+                              offset: Offset.zero,
+                            ),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -115,8 +125,7 @@ class _StaffListPageState extends State<StaffListPage> {
                                 ),
                               );
                             },
-                            onLongPress: () =>
-                                Toast.show(context, "Edit Staff"),
+                            tooltip: "Edit Staff",
                           ),
                         ],
                       ),

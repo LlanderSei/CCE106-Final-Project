@@ -1,6 +1,11 @@
-import 'package:bbqlagao_and_beefpares/customtoast.dart';
+// menu_page.dart
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart' hide MenuController;
 import 'package:flutter/rendering.dart';
+import 'package:gradient_icon/gradient_icon.dart';
 import '../../controllers/manager/menu_controller.dart';
 import '../../models/dish.dart';
 import 'modify_dish_page.dart';
@@ -34,29 +39,57 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _showDeleteDialog(Dish dish) {
+    bool isDeleting = false;
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Delete'),
-          content: Text('Are you sure you want to delete ${dish.name}?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Delete'),
-              onPressed: () async {
-                await _controller.deleteDish(dish.id!);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Confirm Delete'),
+              content: Text('Are you sure you want to delete ${dish.name}?'),
+              actions: <Widget>[
+                if (!isDeleting)
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.orangeAccent),
+                      foregroundColor: Colors.orangeAccent,
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                if (!isDeleting)
+                  GradientButton(
+                    colors: GradientColorSets.set2,
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: () async {
+                      setState(() => isDeleting = true);
+                      try {
+                        await _controller.deleteDish(dish.id!);
+                      } catch (e) {
+                        if (context.mounted) {
+                          Toast.show('Error deleting: $e');
+                        }
+                        setState(() => isDeleting = false);
+                        return;
+                      }
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                if (isDeleting) const GradientCircularProgressIndicator(),
+              ],
+            );
+          },
         );
       },
     );
@@ -85,7 +118,7 @@ class _MenuPageState extends State<MenuPage> {
             stream: _controller.getDishes,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: GradientCircularProgressIndicator());
               }
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
@@ -166,9 +199,12 @@ class _MenuPageState extends State<MenuPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color: Colors.blue,
+                                icon: GradientIcon(
+                                  icon: Icons.edit,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                  offset: Offset.zero,
                                 ),
                                 onPressed: () {
                                   Navigator.push(
@@ -181,17 +217,18 @@ class _MenuPageState extends State<MenuPage> {
                                     ),
                                   );
                                 },
-                                onLongPress: () =>
-                                    Toast.show(context, "Edit Menu"),
+                                tooltip: "Edit Menu",
                               ),
                               IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
+                                icon: GradientIcon(
+                                  icon: Icons.delete,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                  offset: Offset.zero,
                                 ),
                                 onPressed: () => _showDeleteDialog(dish),
-                                onLongPress: () =>
-                                    Toast.show(context, "Delete Menu"),
+                                tooltip: "Delete Menu",
                               ),
                             ],
                           ),

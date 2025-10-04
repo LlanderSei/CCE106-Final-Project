@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/orders_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/order_history_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/new_order_page.dart';
 
 class CashierHomePage extends StatefulWidget {
   const CashierHomePage({super.key});
@@ -109,6 +110,7 @@ class _CashierHomePageState extends State<CashierHomePage> {
                       setState(() {
                         _currentPage = 'orders';
                         _appBarTitle = 'Orders';
+                        _showFabNotifier.value = true;
                       });
                     },
                   ),
@@ -128,12 +130,13 @@ class _CashierHomePageState extends State<CashierHomePage> {
                       ),
                     ),
                     selected: _currentPage == 'orderHistory',
-                    selectedTileColor: Colors.redAccent.withOpacity(0.75),
+                    selectedTileColor: Colors.redAccent.withValues(alpha: .75),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() {
                         _currentPage = 'orderHistory';
                         _appBarTitle = 'Order History';
+                        _showFabNotifier.value = false;
                       });
                     },
                   ),

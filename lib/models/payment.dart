@@ -24,6 +24,10 @@ class Payment {
     );
   }
 
+  get amount => null;
+
+  get method => null;
+
   Map<String, dynamic> toFirestore() {
     return {
       'orderId': orderId,

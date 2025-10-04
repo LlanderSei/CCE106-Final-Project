@@ -1,18 +1,20 @@
+// customtoast.dart
 import 'package:flutter/material.dart';
+import '../globals.dart';
 
 class Toast {
   static OverlayEntry? _currentEntry;
 
   static void show(
-    BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 2),
   }) {
+    if (navigatorKey.currentState == null) return;
     // Remove current toast if one exists
     _currentEntry?.remove();
     _currentEntry = null;
 
-    final overlay = Overlay.of(context);
+    final overlay = navigatorKey.currentState!.overlay!;
     late OverlayEntry entry;
 
     entry = OverlayEntry(

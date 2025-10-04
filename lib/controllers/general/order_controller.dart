@@ -1,16 +1,11 @@
 // controllers/order_controller.dart
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' as fs;
 import 'package:bbqlagao_and_beefpares/models/order.dart';
-import 'package:bbqlagao_and_beefpares/models/dish.dart';
-import 'package:bbqlagao_and_beefpares/models/item.dart';
-import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
-import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
 
 class OrderController {
   final fs.FirebaseFirestore _firestore = fs.FirebaseFirestore.instance;
   final String _collection = 'orders';
-  final MenuController _menuController = MenuController();
-  final InventoryController _inventoryController = InventoryController();
 
   Stream<List<Order>> getOrdersByStatus(String status) => _firestore
       .collection(_collection)
@@ -35,6 +30,7 @@ class OrderController {
   Future<void> addOrder(Order order) async {
     await _firestore.collection(_collection).add(order.toFirestore());
     await _deductIngredients(order);
+    Toast.show('Order successfully created!');
   }
 
   Future<void> updateOrderStatus(

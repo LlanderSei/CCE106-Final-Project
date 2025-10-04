@@ -6,6 +6,7 @@ import 'package:bbqlagao_and_beefpares/pages/manager/staff_list_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_item_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_dish_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_user_page.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class StaffHomePage extends StatefulWidget {
   const StaffHomePage({super.key});
@@ -201,7 +202,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
                     children: <Widget>[
                       ListTile(
                         leading: Icon(
-                          Icons.person,
+                          FontAwesomeIcons.userGear,
                           color: _currentPage == 'staffs'
                               ? Colors.white
                               : Colors.redAccent,
@@ -260,27 +261,30 @@ class _StaffHomePageState extends State<StaffHomePage> {
                   shape: const CircleBorder(),
                   foregroundColor: Colors.white,
                   onPressed: () {
-                    if (_currentPage == 'inventory') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModifyItemPage(),
-                        ),
-                      );
-                    } else if (_currentPage == 'menu') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModifyDishPage(),
-                        ),
-                      );
-                    } else if (_currentPage == 'staffs') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModifyUserPage(),
-                        ),
-                      );
+                    switch (_currentPage) {
+                      case 'inventory':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ModifyItemPage(),
+                          ),
+                        );
+                        break;
+                      case 'menu':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ModifyDishPage(),
+                          ),
+                        );
+                        break;
+                      case 'staffs':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ModifyUserPage(),
+                          ),
+                        );
                     }
                   },
                   tooltip: _tooltip,

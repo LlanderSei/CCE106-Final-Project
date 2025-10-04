@@ -1,4 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/users_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/user.dart';
@@ -22,6 +25,7 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
   String _role = 'Cashier';
   final UsersController _controller = UsersController();
   bool get isEdit => widget.userId != null;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -69,7 +73,7 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
                     ],
                     const Text('Role'),
                     DropdownButtonFormField<String>(
-                      initialValue: _role,
+                      value: _role,
                       items: ['Admin', 'Manager', 'Cashier']
                           .map(
                             (r) => DropdownMenuItem(value: r, child: Text(r)),
@@ -115,50 +119,66 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.redAccent),
-                      foregroundColor: Colors.redAccent,
-                      backgroundColor: Colors.white,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
+                  !_isLoading
+                      ? OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.orangeAccent),
+                            foregroundColor: Colors.orange,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        )
+                      : const SizedBox.shrink(),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orangeAccent,
-                    ),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final newUser = User(
-                          id: widget.userId,
-                          name: _nameCtrl.text,
-                          email: _emailCtrl.text,
-                          role: _role,
-                          provider: isEdit ? widget.user?.provider : null,
-                        );
-                        if (isEdit) {
-                          await _controller.updateUser(
-                            context,
-                            widget.userId!,
-                            newUser,
-                          );
-                        } else {
-                          await _controller.addUser(
-                            context,
-                            newUser,
-                            _passwordCtrl.text,
-                          );
-                        }
-                        if (context.mounted) Navigator.pop(context);
-                      }
-                    },
-                    child: Text(
-                      buttonText,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
+                  _isLoading
+                      ? const GradientCircularProgressIndicator()
+                      : GradientButton(
+                          colors: GradientColorSets.set2,
+                          onPressed: () async {
+                            if (_isLoading) return;
+                            if (_formKey.currentState!.validate()) {
+                              setState(() => _isLoading = true);
+                              try {
+                                final newUser = User(
+                                  id: widget.userId,
+                                  name: _nameCtrl.text,
+                                  email: _emailCtrl.text,
+                                  role: _role,
+                                  provider: isEdit
+                                      ? widget.user?.provider
+                                      : null,
+                                );
+                                if (isEdit) {
+                                  await _controller.updateUser(
+                                    widget.userId!,
+                                    newUser,
+                                  );
+                                } else {
+                                  await _controller.addUser(
+                                    newUser,
+                                    _passwordCtrl.text,
+                                  );
+                                }
+                                if (context.mounted) Navigator.pop(context);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  Toast.show('Error: ${e.toString()}');
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            }
+                          },
+                          child: Text(
+                            buttonText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ],
               ),
             ),

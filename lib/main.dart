@@ -4,18 +4,21 @@ import 'package:bbqlagao_and_beefpares/pages/cashier/cashier_home_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/users_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'globals.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await _registerFirstAdmin();
   runApp(
     ProviderScope(
       child: MaterialApp(
-        initialRoute: '/cashier',
+        navigatorKey: navigatorKey,
+        initialRoute: '/staff',
         routes: {
           // '/auth': (context) => AuthScreen(),
           '/staff': (context) => StaffHomePage(),
@@ -35,7 +38,7 @@ Future<void> _registerFirstAdmin() async {
       .get();
   if (query.docs.isEmpty) {
     final adminUser = User(name: 'Admin', email: adminEmail, role: 'Admin');
-    await usersController.addUser(null, adminUser, 'password');
+    await usersController.addUser(adminUser, 'password');
   }
 }
 

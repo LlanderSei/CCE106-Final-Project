@@ -1,3 +1,6 @@
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/item.dart';
@@ -18,8 +21,10 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
   late TextEditingController _descCtrl;
   late TextEditingController _qtyCtrl;
   late TextEditingController _imageUrlCtrl;
+  late String _result;
   int _quantity = 0;
   final InventoryController _controller = InventoryController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -129,47 +134,64 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.redAccent),
-                      foregroundColor: Colors.redAccent,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
+                  !_isLoading
+                      ? OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.orangeAccent),
+                            foregroundColor: Colors.orangeAccent,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        )
+                      : const SizedBox.shrink(),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orangeAccent,
-                    ),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final newItem = Item(
-                          id: widget.itemId ?? '',
-                          name: _nameCtrl.text,
-                          description: _descCtrl.text.isEmpty
-                              ? null
-                              : _descCtrl.text,
-                          quantity: int.parse(_qtyCtrl.text),
-                          imageUrl: _imageUrlCtrl.text.isEmpty
-                              ? null
-                              : _imageUrlCtrl.text,
-                        );
-                        if (widget.itemId == null) {
-                          await _controller.addItem(newItem);
-                        } else {
-                          await _controller.updateItem(widget.itemId!, newItem);
-                        }
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      }
-                    },
-                    child: Text(
-                      buttonText,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
+                  _isLoading
+                      ? const GradientCircularProgressIndicator()
+                      : GradientButton(
+                          onPressed: () async {
+                            if (_isLoading) return;
+                            if (_formKey.currentState!.validate()) {
+                              setState(() => _isLoading = true);
+                              try {
+                                final newItem = Item(
+                                  id: widget.itemId ?? '',
+                                  name: _nameCtrl.text,
+                                  description: _descCtrl.text.isEmpty
+                                      ? null
+                                      : _descCtrl.text,
+                                  quantity: int.parse(_qtyCtrl.text),
+                                  imageUrl: _imageUrlCtrl.text.isEmpty
+                                      ? null
+                                      : _imageUrlCtrl.text,
+                                );
+                                if (widget.itemId == null) {
+                                  await _controller.addItem(newItem);
+                                } else {
+                                  await _controller.updateItem(
+                                    widget.itemId!,
+                                    newItem,
+                                  );
+                                }
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                              } catch (e) {
+                                Toast.show('Error: ${e.toString()}');
+                              } finally {
+                                if (context.mounted) {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            }
+                          },
+                          child: Text(
+                            buttonText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ],
               ),
             ),

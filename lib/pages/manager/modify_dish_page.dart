@@ -1,8 +1,13 @@
 import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart' hide MenuController;
-import 'package:bbqlagao_and_beefpares/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_checkbox.dart';
+import 'package:gradient_icon/gradient_icon.dart';
 import '../../models/dish.dart';
 import '../../models/item.dart';
 
@@ -27,6 +32,7 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
   final InventoryController _inventoryController = InventoryController();
   List<Map<String, dynamic>> _selectedIngredients = [];
   double _price = 0.0;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -66,7 +72,7 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
         });
       } else {
         if (mounted) {
-          Toast.show(context, 'Item Unavailable/Deleted');
+          Toast.show('Item Unavailable/Deleted');
         }
       }
     }
@@ -94,18 +100,17 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
   }
 
   void _addIngredient() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => _IngredientSelectionDialog(
+      isScrollControlled: true,
+      builder: (context) => _IngredientSelectionBottomSheet(
         inventoryController: _inventoryController,
-        selectedIngredients: _selectedIngredients,
-        onSelected: (id, name, quantity) {
+        selectedIngredientIds: _selectedIngredients
+            .map((ing) => ing['id'] as String)
+            .toSet(),
+        onAdd: (newIngredients) {
           setState(() {
-            _selectedIngredients.add({
-              'id': id,
-              'name': name,
-              'quantity': quantity,
-            });
+            _selectedIngredients.addAll(newIngredients);
           });
         },
       ),
@@ -168,11 +173,13 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
           itemBuilder: (context, index) {
             final ing = _selectedIngredients[index];
             return Card(
+              color: Colors.orange[50],
               child: ListTile(
                 title: Text(ing['name'] ?? 'Unknown'),
                 subtitle: Text('Quantity: ${ing['quantity']}'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
+
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove),
@@ -190,7 +197,13 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete),
+                      icon: GradientIcon(
+                        icon: Icons.delete,
+                        gradient: LinearGradient(
+                          colors: GradientColorSets.set2,
+                        ),
+                        offset: Offset.zero,
+                      ),
                       onPressed: () => _removeIngredient(ing['id']),
                     ),
                   ],
@@ -284,11 +297,15 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                     const Divider(),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
+                      child: GradientButton(
                         onPressed: _addIngredient,
                         child: Text(
                           'Add Ingredient',
-                          style: TextStyle(color: Colors.amber[300]),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
@@ -315,64 +332,80 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.redAccent),
-                      foregroundColor: Colors.redAccent,
-                      backgroundColor: Colors.white,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
+                  !_isLoading
+                      ? OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.orangeAccent),
+                            foregroundColor: Colors.orangeAccent,
+                            backgroundColor: Colors.white54,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        )
+                      : const SizedBox.shrink(),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orangeAccent,
-                    ),
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final bool available = await _computeAvailability();
-                        final ingredientsForSave = _selectedIngredients
-                            .where((ing) => ing['id'] != null)
-                            .map(
-                              (ing) => {
-                                'itemId': ing['id'],
-                                'quantity': ing['quantity'],
-                              },
-                            )
-                            .toList();
-                        final newDish = Dish(
-                          id: widget.dishId,
-                          name: _nameCtrl.text,
-                          description: _descCtrl.text.isEmpty
-                              ? null
-                              : _descCtrl.text,
-                          price: double.parse(_priceCtrl.text),
-                          isVisible: _isVisible,
-                          isAvailable: available,
-                          ingredients: ingredientsForSave,
-                          imageUrl: _imageUrlCtrl.text.isEmpty
-                              ? null
-                              : _imageUrlCtrl.text,
-                        );
-                        if (widget.dishId == null) {
-                          await _menuController.addDish(newDish);
-                        } else {
-                          await _menuController.updateDish(
-                            widget.dishId!,
-                            newDish,
-                          );
-                        }
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      }
-                    },
-                    child: Text(
-                      buttonText,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
+                  _isLoading
+                      ? const GradientCircularProgressIndicator()
+                      : GradientButton(
+                          colors: GradientColorSets.set3,
+                          onPressed: () async {
+                            if (_isLoading) return;
+                            if (_formKey.currentState!.validate()) {
+                              setState(() => _isLoading = true);
+                              try {
+                                final bool available =
+                                    await _computeAvailability();
+                                final ingredientsForSave = _selectedIngredients
+                                    .where((ing) => ing['id'] != null)
+                                    .map(
+                                      (ing) => {
+                                        'itemId': ing['id'],
+                                        'quantity': ing['quantity'],
+                                      },
+                                    )
+                                    .toList();
+                                final newDish = Dish(
+                                  id: widget.dishId,
+                                  name: _nameCtrl.text,
+                                  description: _descCtrl.text.isEmpty
+                                      ? null
+                                      : _descCtrl.text,
+                                  price: double.parse(_priceCtrl.text),
+                                  isVisible: _isVisible,
+                                  isAvailable: available,
+                                  ingredients: ingredientsForSave,
+                                  imageUrl: _imageUrlCtrl.text.isEmpty
+                                      ? null
+                                      : _imageUrlCtrl.text,
+                                );
+                                if (widget.dishId == null) {
+                                  await _menuController.addDish(newDish);
+                                } else {
+                                  await _menuController.updateDish(
+                                    widget.dishId!,
+                                    newDish,
+                                  );
+                                }
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                              } catch (e) {
+                                Toast.show('Error: ${e.toString()}');
+                              } finally {
+                                if (context.mounted) {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            }
+                          },
+                          child: Text(
+                            buttonText,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -392,127 +425,156 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
   }
 }
 
-class _IngredientSelectionDialog extends StatefulWidget {
+class _IngredientSelectionBottomSheet extends StatefulWidget {
   final InventoryController inventoryController;
-  final List<Map<String, dynamic>>? selectedIngredients;
-  final Function(String, String, int) onSelected;
+  final Set<String> selectedIngredientIds;
+  final Function(List<Map<String, dynamic>>) onAdd;
 
-  const _IngredientSelectionDialog({
+  const _IngredientSelectionBottomSheet({
     required this.inventoryController,
-    this.selectedIngredients,
-    required this.onSelected,
+    required this.selectedIngredientIds,
+    required this.onAdd,
   });
 
   @override
-  State<_IngredientSelectionDialog> createState() =>
-      _IngredientSelectionDialogState();
+  State<_IngredientSelectionBottomSheet> createState() =>
+      _IngredientSelectionBottomSheetState();
 }
 
-class _IngredientSelectionDialogState
-    extends State<_IngredientSelectionDialog> {
-  final _quantityController = TextEditingController(text: '1');
-  final _searchController = TextEditingController();
-  Item? _selectedItem;
+class _IngredientSelectionBottomSheetState
+    extends State<_IngredientSelectionBottomSheet> {
   String _searchText = '';
+  final List<Map<String, dynamic>> _selectedIngredients = [];
 
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchText = _searchController.text.toLowerCase();
-      });
-    });
+  bool _isSelected(Item item) {
+    return _selectedIngredients.any((m) => m['id'] == item.id);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Select Ingredient'),
-      content: SizedBox(
-        width: double.maxFinite,
-        height: 300,
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchController,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.8,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (val) =>
+                  setState(() => _searchText = val.toLowerCase()),
               decoration: const InputDecoration(
                 labelText: 'Search Ingredients',
+                border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.search),
               ),
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: StreamBuilder<List<Item>>(
-                stream: widget.inventoryController.getItems,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    final items = snapshot.data!
-                        .where(
-                          (item) =>
-                              item.name.toLowerCase().contains(_searchText),
+          ),
+          Expanded(
+            child: StreamBuilder<List<Item>>(
+              stream: widget.inventoryController.getItems,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: GradientCircularProgressIndicator(),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No ingredients available.'));
+                }
+                final availableIngredients = snapshot.data!
+                    .where(
+                      (item) =>
+                          !widget.selectedIngredientIds.contains(item.id) &&
+                          item.name.toLowerCase().contains(_searchText),
+                    )
+                    .toList();
+                return ListView.builder(
+                  controller: scrollController,
+                  itemCount: availableIngredients.length,
+                  itemBuilder: (context, index) {
+                    final item = availableIngredients[index];
+                    final isSelected = _isSelected(item);
+                    return ListTile(
+                      leading: GradientCheckbox(
+                        value: isSelected,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val!) {
+                              _selectedIngredients.add({
+                                'id': item.id,
+                                'name': item.name,
+                              });
+                            } else {
+                              _selectedIngredients.removeWhere(
+                                (m) => m['id'] == item.id,
+                              );
+                            }
+                          });
+                        },
+                      ),
+                      title: Text(item.name),
+                      subtitle: Text('Stock: ${item.quantity}'),
+                      trailing: item.imageUrl != null
+                          ? Image.network(
+                              item.imageUrl!,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.image_not_supported),
+                            )
+                          : const Icon(Icons.image_not_supported),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.orange),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.orange),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GradientButton(
+                  onPressed: () {
+                    final newIngredients = _selectedIngredients
+                        .map(
+                          (m) => {
+                            'id': m['id'],
+                            'name': m['name'],
+                            'quantity': 1,
+                          },
                         )
                         .toList();
-                    return ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        final alreadyAdded =
-                            widget.selectedIngredients?.any(
-                              (ing) => ing['id'] == item.id,
-                            ) ??
-                            false;
-                        return ListTile(
-                          title: Text(item.name),
-                          enabled: !alreadyAdded,
-                          onTap: alreadyAdded
-                              ? null
-                              : () => setState(() => _selectedItem = item),
-                          selected: _selectedItem?.id == item.id,
-                          selectedColor: Colors.orange,
-                        );
-                      },
-                    );
-                  }
-                  return const CircularProgressIndicator();
-                },
-              ),
+                    widget.onAdd(newIngredients);
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Add Ingredient',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            TextField(
-              controller: _quantityController,
-              decoration: const InputDecoration(labelText: 'Quantity'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: Colors.orange)),
-        ),
-        ElevatedButton(
-          onPressed: _selectedItem != null
-              ? () {
-                  final qty = int.tryParse(_quantityController.text) ?? 1;
-                  widget.onSelected(
-                    _selectedItem!.id!,
-                    _selectedItem!.name,
-                    qty,
-                  );
-                  Navigator.pop(context);
-                }
-              : null,
-          child: Text('Add', style: TextStyle(color: Colors.orange)),
-        ),
-      ],
     );
-  }
-
-  @override
-  void dispose() {
-    _quantityController.dispose();
-    _searchController.dispose();
-    super.dispose();
   }
 }
