@@ -1,4 +1,5 @@
 // pages\cashier\new_order_page.dart
+import 'package:bbqlagao_and_beefpares/models/user.dart';
 import 'package:bbqlagao_and_beefpares/styles/color.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_checkbox.dart';
@@ -10,6 +11,7 @@ import 'package:bbqlagao_and_beefpares/models/dish.dart';
 import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:gradient_icon/gradient_icon.dart';
+import 'package:provider/provider.dart';
 import 'payment_page.dart';
 
 class NewOrderPage extends StatefulWidget {
@@ -21,17 +23,24 @@ class NewOrderPage extends StatefulWidget {
 
 class _NewOrderPageState extends State<NewOrderPage> {
   final OrderController _orderController = OrderController();
-  final MenuController _menuController = MenuController();
+  final MenuController _menuController = MenuController.instance;
   List<Map<String, dynamic>> _selectedDishes = [];
   bool _toPrepare = false;
   bool _isPaymentEnabled = false;
   bool _isLoading = false;
   double _totalAmount = 0.0;
-  final String _cashierName = 'Temporary Cashier';
+  String _cashierName = 'Temporary Cashier';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final user = userProvider.user;
+      setState(() {
+        _cashierName = user?.name ?? 'Temporary Cashier';
+      });
+    });
     _calculateTotal();
   }
 
@@ -404,7 +413,7 @@ class _DishSelectionBottomSheetState extends State<_DishSelectionBottomSheet> {
           ),
           Expanded(
             child: StreamBuilder<List<Dish>>(
-              stream: widget.menuController.getDishes,
+              stream: widget.menuController.getAllDishesForStaff(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(

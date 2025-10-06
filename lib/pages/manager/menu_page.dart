@@ -21,7 +21,7 @@ class MenuPage extends StatefulWidget {
 
 class _MenuPageState extends State<MenuPage> {
   final ScrollController _scrollController = ScrollController();
-  final MenuController _controller = MenuController();
+  final MenuController _controller = MenuController.instance;
 
   @override
   void initState() {
@@ -115,7 +115,7 @@ class _MenuPageState extends State<MenuPage> {
         ),
         Expanded(
           child: StreamBuilder<List<Dish>>(
-            stream: _controller.getDishes,
+            stream: _controller.getAllDishesForStaff(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: GradientCircularProgressIndicator());

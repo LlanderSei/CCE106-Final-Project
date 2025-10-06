@@ -1,6 +1,5 @@
-import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bbqlagao_and_beefpares/models/dish.dart';
+import '../../models/dish.dart';
 
 class MenuController {
   // Singleton instance
@@ -11,25 +10,26 @@ class MenuController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'menu';
 
-  // Methods for staff that fetch all dishes regardless of status
-  Stream<List<Dish>> getAllDishesForStaff() => _firestore
+  Stream<List<Dish>> getAllDishes() => _firestore
       .collection(_collection)
+      .where('isVisible', isEqualTo: true)
+      .where('isAvailable', isEqualTo: true)
       .snapshots()
       .map(
         (snapshot) =>
             snapshot.docs.map((doc) => Dish.fromFirestore(doc)).toList(),
       );
 
-  Stream<List<Dish>> getDishesByCategoryForStaff(String category) {
-    if (category == 'All') return getAllDishesForStaff();
+  Stream<List<Dish>> getDishesByCategory(String category) {
+    if (category == 'All') return getAllDishes();
 
-    if (category == 'Misc') {
-      return getAllDishesForStaff().map(
+    if (category == 'Misc.') {
+      return getAllDishes().map(
         (dishes) => dishes.where((dish) => dish.categories.isEmpty).toList(),
       );
     }
 
-    return getAllDishesForStaff().map(
+    return getAllDishes().map(
       (dishes) => dishes
           .where(
             (dish) =>
@@ -39,8 +39,12 @@ class MenuController {
     );
   }
 
-  Stream<List<String>> getAllCategoriesForStaff() =>
-      _firestore.collection(_collection).snapshots().map((snapshot) {
+  Stream<List<String>> getAllCategories() => _firestore
+      .collection(_collection)
+      .where('isVisible', isEqualTo: true)
+      .where('isAvailable', isEqualTo: true)
+      .snapshots()
+      .map((snapshot) {
         final Set<String> categories = {};
         for (final doc in snapshot.docs) {
           final data = doc.data();
@@ -56,19 +60,4 @@ class MenuController {
         }
         return categories.toList()..sort();
       });
-
-  Future<void> addDish(Dish dish) async {
-    await _firestore.collection(_collection).add(dish.toFirestore());
-    Toast.show('Menu added successfully');
-  }
-
-  Future<void> updateDish(String id, Dish dish) async {
-    await _firestore.collection(_collection).doc(id).update(dish.toFirestore());
-    Toast.show('Menu updated successfully');
-  }
-
-  Future<void> deleteDish(String id) async {
-    await _firestore.collection(_collection).doc(id).delete();
-    Toast.show('Menu deleted successfully');
-  }
 }

@@ -7,13 +7,78 @@ import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart' hide MenuController;
-
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_checkbox.dart';
 import 'package:gradient_icon/gradient_icon.dart';
 import '../../models/dish.dart';
 import '../../models/item.dart';
 import '../../models/category.dart';
-import '../../widgets/customtoast.dart';
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GradientCheckbox(
+                  value: _isVisible,
+                  onChanged: (val) => setState(() => _isVisible = val!),
+                ),
+                const Text('Visible to Customers'),
+              ],
+            ),
+            GradientButton(
+              onPressed: _isLoading 
+                ? null 
+                : () async {
+                    if (!_formKey.currentState!.validate()) return;
+                    
+                    setState(() => _isLoading = true);
+                    try {
+                      final isAvailable = await _computeAvailability();
+                      final dish = Dish(
+                        id: widget.dishId,
+                        name: _nameCtrl.text,
+                        description: _descCtrl.text,
+                        price: double.parse(_priceCtrl.text),
+                        isVisible: _isVisible,
+                        isAvailable: isAvailable,
+                        ingredients: _selectedIngredients,
+                        categories: _selectedCategories,
+                        imageUrl: _imageUrlCtrl.text.isEmpty ? null : _imageUrlCtrl.text,
+                      );
+
+                      if (widget.dishId != null) {
+                        await _menuController.updateDish(widget.dishId!, dish);
+                      } else {
+                        await _menuController.addDish(dish);
+                      }
+
+                      if (mounted) {
+                        Navigator.pop(context);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        Toast.show('Error: $e');
+                      }
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
+                    }
+                  },
+              child: Text(buttonText),
+            ),es/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart' hide MenuController;
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_checkbox.dart';
+import 'package:gradient_icon/gradient_icon.dart';
+import '../../models/dish.dart';
+import '../../models/item.dart';
+import '../../models/category.dart';
 
 class ModifyDishPage extends StatefulWidget {
   final String? dishId;
@@ -60,63 +125,10 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
         widget.dish!.categories
             .where((cat) => cat['categoryId'] != null)
             .map(
-              (cat) => {
-                'id': cat['categoryId'],
-                'name': cat['categoryName'] ?? '',
-              },
+              (cat) => {'id': cat['categoryId'], 'name': cat['categoryName']},
             ),
       );
       _loadIngredientNames();
-    }
-  }
-
-  Future<void> _onSavePressed() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final isAvailable = await _computeAvailability();
-      final dish = Dish(
-        id: widget.dishId,
-        name: _nameCtrl.text,
-        description: _descCtrl.text,
-        price: double.parse(_priceCtrl.text),
-        isVisible: _isVisible,
-        isAvailable: isAvailable,
-        ingredients: _selectedIngredients
-            .map((ing) => {'itemId': ing['id'], 'quantity': ing['quantity']})
-            .toList(),
-        categories: _selectedCategories
-            .map(
-              (cat) => {
-                'categoryId': cat['id'],
-                'categoryName': cat['name'] ?? cat['categoryName'] ?? '',
-              },
-            )
-            .toList(),
-        imageUrl: _imageUrlCtrl.text.isEmpty ? null : _imageUrlCtrl.text,
-      );
-
-      if (widget.dishId != null) {
-        await _menuController.updateDish(widget.dishId!, dish);
-      } else {
-        await _menuController.addDish(dish);
-      }
-
-      if (mounted) {
-        Toast.show(
-          'Dish ${widget.dishId != null ? 'updated' : 'added'} successfully',
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        Toast.show('Error: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
@@ -283,10 +295,6 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                               labelText: 'Price',
                             ),
                             keyboardType: TextInputType.number,
-                            validator: (value) =>
-                                double.tryParse(value!) == null
-                                ? 'Enter a valid price'
-                                : null,
                             onChanged: (val) {
                               _price = double.tryParse(val) ?? 0.0;
                             },
@@ -305,45 +313,41 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                     ),
                     _buildImagePreview(),
                     const SizedBox(height: 16),
-                    IntrinsicHeight(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(
-                            child: GradientButton(
-                              onPressed: _addCategories,
-                              child: const Text(
-                                'Select Categories',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: GradientButton(
+                            onPressed: _addCategories,
+                            child: const Text(
+                              'Select Categories',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: GradientButton(
-                              height: double.infinity,
-                              alignment: Alignment.center,
-                              onPressed: _addIngredient,
-                              child: const Text(
-                                'Add Ingredients',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: GradientButton(
+                            onPressed: _addIngredient,
+                            child: const Text(
+                              'Add Ingredients',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Categories: ${_selectedCategories.isEmpty ? "None" : _selectedCategories.map((c) => c["name"] ?? c["categoryName"] ?? "Unknown").join(", ")}',
+                      'Categories: ${_selectedCategories.isEmpty ? "None" : _selectedCategories.map((c) => c["name"]).join(", ")}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -376,19 +380,100 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                 const Text('Visible to Customers'),
               ],
             ),
-            SizedBox(
-              child: GradientButton(
-                onPressed: _isLoading
-                    ? () {}
-                    : () {
-                        _onSavePressed();
-                      },
-                child: Text(
-                  buttonText,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+            GradientButton(
+              onPressed: () async {
+                if (!_formKey.currentState!.validate() || _isLoading) return;
+                
+                setState(() => _isLoading = true);
+                try {
+                  final isAvailable = await _computeAvailability();
+                  final dish = Dish(
+                    id: widget.dishId,
+                    name: _nameCtrl.text,
+                    description: _descCtrl.text,
+                    price: double.parse(_priceCtrl.text),
+                    isVisible: _isVisible,
+                    isAvailable: isAvailable,
+                    ingredients: _selectedIngredients,
+                    categories: _selectedCategories,
+                    imageUrl: _imageUrlCtrl.text.isEmpty ? null : _imageUrlCtrl.text,
+                  );
+
+                  if (widget.dishId != null) {
+                    await _menuController.updateDish(widget.dishId!, dish);
+                  } else {
+                    await _menuController.addDish(dish);
+                  }
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    Toast.show('Error: $e');
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                  }
+                }
+              },
+              child: Text(buttonText),
+            ),
+                  try {
+                    final available = await _computeAvailability();
+                    final ingredientsForSave = _selectedIngredients
+                        .map(
+                          (ing) => {
+                            'itemId': ing['id'],
+                            'quantity': ing['quantity'] ?? 1,
+                          },
+                        )
+                        .toList();
+                    final categoriesForSave = _selectedCategories
+                        .map(
+                          (cat) => {
+                            'categoryId': cat['id'],
+                            'categoryName': cat['name'],
+                          },
+                        )
+                        .toList();
+                    final newDish = Dish(
+                      name: _nameCtrl.text,
+                      description: _descCtrl.text.isEmpty
+                          ? null
+                          : _descCtrl.text,
+                      price: double.parse(_priceCtrl.text),
+                      isVisible: _isVisible,
+                      isAvailable: available,
+                      ingredients: ingredientsForSave,
+                      categories: categoriesForSave,
+                      imageUrl: _imageUrlCtrl.text.isEmpty
+                          ? null
+                          : _imageUrlCtrl.text,
+                    );
+                    if (widget.dishId == null) {
+                      await _menuController.addDish(newDish);
+                    } else {
+                      await _menuController.updateDish(widget.dishId!, newDish);
+                    }
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    Toast.show('Error: ${e.toString()}');
+                  } finally {
+                    if (context.mounted) {
+                      setState(() => _isLoading = false);
+                    }
+                  }
+                }
+              },
+              child: Text(
+                buttonText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -438,12 +523,12 @@ class _IngredientSelectionBottomSheetState
   int _getQty(String id) {
     final ing = _tempIngredients.firstWhere(
       (m) => m['id'] == id,
-      orElse: () => {'quantity': 0},
+      orElse: () => {'quantity': 1},
     );
-    return ing['quantity'] ?? 0;
+    return ing['quantity'] ?? 1;
   }
 
-  void _setQty(String id, String name, int qty) {
+  void _setQty(String id, int qty) {
     setState(() {
       final index = _tempIngredients.indexWhere((m) => m['id'] == id);
       if (index != -1) {
@@ -452,8 +537,6 @@ class _IngredientSelectionBottomSheetState
         } else {
           _tempIngredients[index]['quantity'] = qty;
         }
-      } else if (qty > 0) {
-        _tempIngredients.add({'id': id, 'name': name, 'quantity': qty});
       }
     });
   }
@@ -473,7 +556,8 @@ class _IngredientSelectionBottomSheetState
               onChanged: (val) =>
                   setState(() => _searchText = val.toLowerCase()),
               decoration: const InputDecoration(
-                hintText: 'Search ingredients...',
+                labelText: 'Search Ingredients',
+                border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.search),
               ),
             ),
@@ -487,43 +571,73 @@ class _IngredientSelectionBottomSheetState
                     child: GradientCircularProgressIndicator(),
                   );
                 }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No ingredients found'));
+                  return const Center(child: Text('No ingredients available.'));
                 }
-
-                final items = snapshot.data!
-                    .where(
-                      (item) => item.name.toLowerCase().contains(_searchText),
-                    )
-                    .toList();
-
+                final availableIngredients = snapshot.data!.where((item) {
+                  final matchesSearch = item.name.toLowerCase().contains(
+                    _searchText,
+                  );
+                  return matchesSearch;
+                }).toList();
                 return ListView.builder(
                   controller: scrollController,
-                  itemCount: items.length,
+                  itemCount: availableIngredients.length,
                   itemBuilder: (context, index) {
-                    final item = items[index];
-                    final qty = _getQty(item.id!);
-                    final isSelected = qty > 0;
-
+                    final item = availableIngredients[index];
+                    final isSelected = _tempIngredients.any(
+                      (m) => m['id'] == item.id,
+                    );
                     return ListTile(
-                      leading: Checkbox(
+                      leading: GradientCheckbox(
                         value: isSelected,
-                        onChanged: (checked) {
-                          if (checked!) {
-                            _setQty(item.id!, item.name, 1);
-                          } else {
-                            _setQty(item.id!, item.name, 0);
-                          }
+                        onChanged: (val) {
+                          setState(() {
+                            if (val!) {
+                              _tempIngredients.add({
+                                'id': item.id,
+                                'name': item.name,
+                                'quantity': 1,
+                              });
+                            } else {
+                              _tempIngredients.removeWhere(
+                                (m) => m['id'] == item.id,
+                              );
+                            }
+                          });
                         },
                       ),
-                      title: Text(item.name),
-                      subtitle: Text(
-                        'Stock: ${item.quantity}${isSelected ? ' | Selected: $qty' : ''}',
+                      title: Row(
+                        children: [
+                          if (item.imageUrl != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.network(
+                                item.imageUrl!,
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                      Icons.image_not_supported,
+                                      size: 40,
+                                    ),
+                              ),
+                            )
+                          else
+                            const Icon(Icons.image_not_supported, size: 40),
+                          const SizedBox(width: 5),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.name),
+                              Text(
+                                'Stocks: ${item.quantity}',
+                                textScaler: TextScaler.linear(.7),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                       trailing: isSelected
                           ? Row(
@@ -531,14 +645,26 @@ class _IngredientSelectionBottomSheetState
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove),
-                                  onPressed: () =>
-                                      _setQty(item.id!, item.name, qty - 1),
+                                  onPressed: () {
+                                    final current = _getQty(item.id!);
+                                    if (current <= 1) {
+                                      setState(() {
+                                        _tempIngredients.removeWhere(
+                                          (m) => m['id'] == item.id,
+                                        );
+                                      });
+                                    } else {
+                                      _setQty(item.id!, current - 1);
+                                    }
+                                  },
                                 ),
-                                Text('$qty'),
+                                Text('${_getQty(item.id!)}'),
                                 IconButton(
                                   icon: const Icon(Icons.add),
-                                  onPressed: () =>
-                                      _setQty(item.id!, item.name, qty + 1),
+                                  onPressed: () {
+                                    final current = _getQty(item.id!);
+                                    _setQty(item.id!, current + 1);
+                                  },
                                 ),
                               ],
                             )
@@ -555,22 +681,27 @@ class _IngredientSelectionBottomSheetState
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.orangeAccent),
-                    foregroundColor: Colors.orangeAccent,
-                  ),
-                  child: const Text('Cancel'),
                   onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.orange),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.orange),
+                  ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 GradientButton(
                   onPressed: () {
                     widget.onSave(_tempIngredients);
                     Navigator.pop(context);
                   },
                   child: const Text(
-                    'Save',
-                    style: TextStyle(color: Colors.white),
+                    'Save Ingredients',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -615,19 +746,6 @@ class _CategorySelectionBottomSheetState
     return _currentSelected.any((cat) => cat['id'] == id);
   }
 
-  void _toggleCategory(Category category) {
-    setState(() {
-      final index = _currentSelected.indexWhere(
-        (cat) => cat['id'] == category.id,
-      );
-      if (index != -1) {
-        _currentSelected.removeAt(index);
-      } else {
-        _currentSelected.add({'id': category.id, 'name': category.name});
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -643,7 +761,8 @@ class _CategorySelectionBottomSheetState
               onChanged: (val) =>
                   setState(() => _searchText = val.toLowerCase()),
               decoration: const InputDecoration(
-                hintText: 'Search categories...',
+                labelText: 'Search Categories',
+                border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.search),
               ),
             ),
@@ -657,35 +776,39 @@ class _CategorySelectionBottomSheetState
                     child: GradientCircularProgressIndicator(),
                   );
                 }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No categories found'));
+                  return const Center(child: Text('No categories available.'));
                 }
-
                 final categories = snapshot.data!
                     .where(
                       (cat) => cat.name.toLowerCase().contains(_searchText),
                     )
                     .toList();
-
                 return ListView.builder(
                   controller: scrollController,
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
-                    final category = categories[index];
+                    final cat = categories[index];
+                    final isSelected = _isSelected(cat.id);
                     return ListTile(
-                      title: Text(category.name),
-                      trailing: _isSelected(category.id)
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: Color(0xFFD84315),
-                            )
-                          : const Icon(Icons.circle_outlined),
-                      onTap: () => _toggleCategory(category),
+                      leading: GradientCheckbox(
+                        value: isSelected,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val!) {
+                              _currentSelected.add({
+                                'id': cat.id,
+                                'name': cat.name,
+                              });
+                            } else {
+                              _currentSelected.removeWhere(
+                                (m) => m['id'] == cat.id,
+                              );
+                            }
+                          });
+                        },
+                      ),
+                      title: Text(cat.name),
                     );
                   },
                 );
@@ -698,22 +821,38 @@ class _CategorySelectionBottomSheetState
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton(
+                  onPressed: () {
+                    // Restore original selection on cancel
+                    setState(() {
+                      _currentSelected = List.from(
+                        widget.selectedCategories.map(
+                          (cat) => Map<String, dynamic>.from(cat),
+                        ),
+                      );
+                    });
+                    Navigator.pop(context);
+                  },
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.orangeAccent),
-                    foregroundColor: Colors.orangeAccent,
+                    side: const BorderSide(color: Colors.orange),
                   ),
-                  child: const Text('Cancel'),
-                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.orange),
+                  ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 10),
                 GradientButton(
                   onPressed: () {
+                    // Save the current selection
                     widget.onSave(_currentSelected);
                     Navigator.pop(context);
                   },
                   child: const Text(
-                    'Save',
-                    style: TextStyle(color: Colors.white),
+                    'Save Categories',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],

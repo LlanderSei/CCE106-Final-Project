@@ -1,8 +1,10 @@
 // pages/cashier/cashier_home_page.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/orders_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/order_history_page.dart';
-import 'package:bbqlagao_and_beefpares/pages/cashier/new_order_page.dart';
+import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'package:bbqlagao_and_beefpares/controllers/auth/auth_controller.dart';
 
 class CashierHomePage extends StatefulWidget {
   const CashierHomePage({super.key});
@@ -15,9 +17,37 @@ class _CashierHomePageState extends State<CashierHomePage> {
   String _currentPage = 'orders';
   String _appBarTitle = 'Cashier Dashboard';
   late ValueNotifier<bool> _showFabNotifier;
+  final AuthController _authController = AuthController();
 
   void _onFabVisibilityChanged(bool visible) {
     _showFabNotifier.value = visible;
+  }
+
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _authController.signOut();
+              if (mounted) {
+                Provider.of<UserProvider>(context, listen: false).clearUser();
+                Navigator.pushReplacementNamed(context, '/hello');
+              }
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -34,6 +64,7 @@ class _CashierHomePageState extends State<CashierHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<UserProvider>(context).user;
     return Scaffold(
       appBar: AppBar(
         title: Text(_appBarTitle, style: TextStyle(color: Colors.white)),
@@ -84,6 +115,26 @@ class _CashierHomePageState extends State<CashierHomePage> {
                 ),
               ),
             ),
+            if (user != null)
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                width: double.infinity,
+                color: Colors.transparent,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Logged in as:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    Text(user.name, style: TextStyle(fontSize: 16)),
+                    Text(user.email, style: TextStyle(color: Colors.grey[600])),
+                  ],
+                ),
+              ),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -143,16 +194,14 @@ class _CashierHomePageState extends State<CashierHomePage> {
                 ],
               ),
             ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_left),
-                  onPressed: () => Navigator.pop(context),
-                  tooltip: 'Close menu',
-                ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.redAccent),
               ),
+              onTap: _logout,
             ),
           ],
         ),

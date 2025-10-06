@@ -7,6 +7,8 @@ import 'package:bbqlagao_and_beefpares/controllers/general/payment_controller.da
 import 'package:bbqlagao_and_beefpares/models/payment.dart';
 import 'package:bbqlagao_and_beefpares/models/order.dart';
 import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'package:provider/provider.dart';
 
 class PaymentPage extends StatefulWidget {
   final Order order;
@@ -179,7 +181,37 @@ class _PaymentPageState extends State<PaymentPage> {
                       paymentDetails: paymentDetails,
                     );
                     await _paymentController.addPayment(payment);
-                    await _orderController.addOrder(widget.order);
+                    final userProvider = Provider.of<UserProvider>(
+                      context,
+                      listen: false,
+                    );
+                    final user = userProvider.user;
+                    String formattedName = widget.order.name; // default
+                    if (user != null) {
+                      if (user.role == 'Cashier') {
+                        formattedName = '${user.name} (Cashier)';
+                      } else if (user.role == 'Manager' ||
+                          user.role == 'Admin') {
+                        formattedName = '${user.name} (Manager/Admin)';
+                      } else {
+                        formattedName = user.name;
+                      }
+                    }
+                    final updatedOrder = Order(
+                      id: widget.order.id,
+                      orderId: widget.order.orderId,
+                      userId: widget.order.userId,
+                      name: formattedName,
+                      items: widget.order.items,
+                      status: widget.order.status,
+                      totalAmount: widget.order.totalAmount,
+                      orderType: widget.order.orderType,
+                      createdAt: widget.order.createdAt,
+                      preparedAt: widget.order.preparedAt,
+                      servedAt: widget.order.servedAt,
+                      updatedAt: widget.order.updatedAt,
+                    );
+                    await _orderController.addOrder(updatedOrder);
                     if (mounted)
                       Navigator.popUntil(context, (route) => route.isFirst);
                     setState(() {

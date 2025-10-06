@@ -1,3 +1,4 @@
+//models/dish.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Dish {
@@ -8,6 +9,7 @@ class Dish {
   final bool isVisible;
   final bool isAvailable;
   final List<Map<String, dynamic>> ingredients;
+  final List<Map<String, dynamic>> categories;
   final String? imageUrl;
 
   Dish({
@@ -18,6 +20,7 @@ class Dish {
     this.isVisible = true,
     this.isAvailable = true,
     required this.ingredients,
+    required this.categories,
     this.imageUrl,
   });
 
@@ -31,6 +34,7 @@ class Dish {
       isVisible: data['isVisible'] ?? true,
       isAvailable: data['isAvailable'] ?? true,
       ingredients: List<Map<String, dynamic>>.from(data['ingredients'] ?? []),
+      categories: List<Map<String, dynamic>>.from(data['categories'] ?? []),
       imageUrl: data['imageUrl'],
     );
   }
@@ -43,6 +47,7 @@ class Dish {
       'isVisible': isVisible,
       'isAvailable': isAvailable,
       'ingredients': ingredients,
+      'categories': categories,
       if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }

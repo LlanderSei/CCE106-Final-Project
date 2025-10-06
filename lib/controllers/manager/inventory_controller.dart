@@ -18,17 +18,13 @@ class InventoryController {
 
   Future<void> addItem(Item item) async {
     await _firestore.collection(_collection).add(item.toFirestore());
-    Toast.show('Item added successfully.');
   }
 
   Future<void> updateItem(String id, Item item) async {
     await _firestore.collection(_collection).doc(id).update(item.toFirestore());
-    await _firestore.collection(_collection).add(item.toFirestore());
-    Toast.show('Item updated successfully.');
   }
 
   Future<void> deleteItem(String id) async {
     await _firestore.collection(_collection).doc(id).delete();
-    Toast.show('Item deleted successfully.');
   }
 }

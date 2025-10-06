@@ -1,7 +1,7 @@
 // Source code dump of all files in e:\Documents\Llander\Yuemnigga\CCE106\Project\bbqlagao_and_beefpares\lib
 // This file is to be used for AIs to understand the whole
 // context of this project structure.
-// Updated as of 2025-10-04 10:30:27 PM
+// Updated as of 2025-10-06 12:37:59 AM
 
 // START | FILE: globals.dart
 // globals.dart
@@ -200,6 +200,50 @@ class PaymentController {
 // END OF FILE for controllers\general\payment_controller.dart
 
 
+// START | FILE: controllers\manager\category_controller.dart
+//controllers/manager/category_controller.dart
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bbqlagao_and_beefpares/models/category.dart';
+
+class CategoryController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _collection = 'categories';
+
+  Stream<List<Category>> get getCategories => _firestore
+      .collection(_collection)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Category.fromFirestore(doc)).toList(),
+      );
+
+  Future<void> addCategory(Category category) async {
+    await _firestore.collection(_collection).add({
+      ...category.toFirestore(),
+      'createdAt': Timestamp.now(),
+      'updatedAt': Timestamp.now(),
+    });
+    Toast.show('Category added successfully');
+  }
+
+  Future<void> updateCategory(String id, Category category) async {
+    await _firestore.collection(_collection).doc(id).update({
+      ...category.toFirestore(),
+      'updatedAt': Timestamp.now(),
+    });
+    Toast.show('Category updated successfully');
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await _firestore.collection(_collection).doc(id).delete();
+    Toast.show('Category deleted successfully');
+  }
+}
+
+// END OF FILE for controllers\manager\category_controller.dart
+
+
 // START | FILE: controllers\manager\inventory_controller.dart
 // lib/controllers/inventory_controller.dart
 import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
@@ -322,7 +366,38 @@ class UsersController {
 // END OF FILE for controllers\manager\users_controller.dart
 
 
+// START | FILE: models\category.dart
+//models/category.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class Category {
+  final String? id;
+  final String name;
+  final Timestamp? createdAt;
+  final Timestamp? updatedAt;
+
+  Category({this.id, required this.name, this.createdAt, this.updatedAt});
+
+  factory Category.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return Category(
+      id: doc.id,
+      name: data['name'] ?? '',
+      createdAt: data['createdAt'],
+      updatedAt: data['updatedAt'],
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {'name': name};
+  }
+}
+
+// END OF FILE for models\category.dart
+
+
 // START | FILE: models\dish.dart
+//models/dish.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Dish {
@@ -333,6 +408,7 @@ class Dish {
   final bool isVisible;
   final bool isAvailable;
   final List<Map<String, dynamic>> ingredients;
+  final List<Map<String, dynamic>> categories;
   final String? imageUrl;
 
   Dish({
@@ -343,6 +419,7 @@ class Dish {
     this.isVisible = true,
     this.isAvailable = true,
     required this.ingredients,
+    required this.categories,
     this.imageUrl,
   });
 
@@ -356,6 +433,7 @@ class Dish {
       isVisible: data['isVisible'] ?? true,
       isAvailable: data['isAvailable'] ?? true,
       ingredients: List<Map<String, dynamic>>.from(data['ingredients'] ?? []),
+      categories: List<Map<String, dynamic>>.from(data['categories'] ?? []),
       imageUrl: data['imageUrl'],
     );
   }
@@ -368,11 +446,11 @@ class Dish {
       'isVisible': isVisible,
       'isAvailable': isAvailable,
       'ingredients': ingredients,
+      'categories': categories,
       if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }
 }
-
 // END OF FILE for models\dish.dart
 
 
@@ -515,6 +593,10 @@ class Payment {
       paymentDetails: Map<String, dynamic>.from(data['paymentDetails'] ?? {}),
     );
   }
+
+  get amount => null;
+
+  get method => null;
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -1068,6 +1150,7 @@ class _NewOrderPageState extends State<NewOrderPage> {
                               offset: Offset.zero,
                             ),
                             onPressed: () => _removeDish(dish['dishId']),
+                            onLongPress: () => Toast.show('Delete item'),
                           ),
                         ],
                       ),
@@ -1271,12 +1354,18 @@ class _DishSelectionBottomSheetState extends State<_DishSelectionBottomSheet> {
 
 
 // START | FILE: pages\cashier\orders_page.dart
-// pages/cashier/orders_page.dart
+//orders_page.dart
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/orders_tab_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/preparing_tab_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/serving_tab_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/cashier/new_order_page.dart';
+import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/order.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 
 class OrdersPage extends StatefulWidget {
   final Function(bool)? onFabVisibilityChanged;
@@ -1291,6 +1380,7 @@ class _OrdersPageState extends State<OrdersPage> {
   int _currentIndex = 0;
   late final List<Widget> _tabs;
   late ValueNotifier<bool> _showFabNotifier;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -1307,10 +1397,60 @@ class _OrdersPageState extends State<OrdersPage> {
     ];
   }
 
+  Future<void> _completeAllServing() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Complete All Serving Orders'),
+        content: const Text(
+          'Are you sure you want to set all serving orders to completed?',
+        ),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.orangeAccent),
+              foregroundColor: Colors.orangeAccent,
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
+          GradientButton(
+            colors: GradientColorSets.set1,
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() {
+                _loading = true;
+              });
+              try {
+                final controller = OrderController();
+                final stream = controller.getOrdersByStatus('serving');
+                final snapshot = await stream.first;
+                final futures = snapshot.map((order) async {
+                  await controller.updateOrderStatus(order.id!, 'completed');
+                });
+                await Future.wait(futures);
+                Toast.show('All serving orders completed');
+              } catch (e) {
+                Toast.show('Error: $e');
+              } finally {
+                setState(() {
+                  _loading = false;
+                });
+              }
+            },
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _tabs[_currentIndex],
+      body: _loading
+          ? const Center(child: GradientCircularProgressIndicator())
+          : _tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -1363,6 +1503,15 @@ class _OrdersPageState extends State<OrdersPage> {
                 );
               },
             )
+          : _currentIndex == 2
+          ? FloatingActionButton(
+              backgroundColor: Colors.redAccent[100],
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              tooltip: 'Complete All',
+              onPressed: _completeAllServing,
+              child: const Icon(Icons.checklist),
+            )
           : null,
     );
   }
@@ -1372,8 +1521,9 @@ class _OrdersPageState extends State<OrdersPage> {
 
 
 // START | FILE: pages\cashier\orders_tab_page.dart
-// pages/cashier/order_tab_page.dart
+//orders_tab_page.dart
 import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart';
@@ -1381,6 +1531,7 @@ import 'package:bbqlagao_and_beefpares/models/order.dart';
 import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gradient_icon/gradient_icon.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/order_details_page.dart';
 
 class OrdersTabPage extends StatefulWidget {
   final Function(bool)? onFabVisibilityChanged;
@@ -1409,6 +1560,43 @@ class _OrdersTabPageState extends State<OrdersTabPage> {
     if (widget.onFabVisibilityChanged != null) {
       widget.onFabVisibilityChanged!(!isScrollingDown);
     }
+  }
+
+  Future<void> _updateStatus(Order order, String status) async {
+    try {
+      await _controller.updateOrderStatus(order.id!, status);
+      Toast.show('Order updated to $status');
+    } catch (e) {
+      Toast.show('Error: $e');
+    }
+  }
+
+  void _cancelOrder(Order order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Cancellation'),
+        content: const Text('Are you sure you want to cancel this order?'),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.orangeAccent),
+              foregroundColor: Colors.orangeAccent,
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
+          GradientButton(
+            colors: GradientColorSets.set1,
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updateStatus(order, 'cancelled');
+            },
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1480,15 +1668,48 @@ class _OrdersTabPageState extends State<OrdersTabPage> {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: GradientIcon(
-                              icon: Icons.visibility,
-                              offset: Offset.zero,
-                              gradient: LinearGradient(
-                                colors: GradientColorSets.set1,
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.cancel,
+                                  offset: Offset.zero,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set1,
+                                  ),
+                                ),
+                                onPressed: () => _cancelOrder(order),
                               ),
-                            ),
-                            onPressed: () => Toast.show('View Order'),
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.kitchen,
+                                  offset: Offset.zero,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                ),
+                                onPressed: () =>
+                                    _updateStatus(order, 'preparing'),
+                              ),
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.visibility,
+                                  offset: Offset.zero,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set3,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          OrderDetailsPage(order: order),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1513,16 +1734,439 @@ class _OrdersTabPageState extends State<OrdersTabPage> {
 // END OF FILE for pages\cashier\orders_tab_page.dart
 
 
-// START | FILE: pages\cashier\order_history_page.dart
-// pages/cashier/order_history_page.dart
+// START | FILE: pages\cashier\order_details_page.dart
+//order_details_page.dart
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/order.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:gradient_icon/gradient_icon.dart';
+import 'package:bbqlagao_and_beefpares/controllers/general/payment_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/payment.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as cfs;
+import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
 
-class OrderHistoryPage extends StatelessWidget {
-  const OrderHistoryPage({super.key});
+class OrderDetailsPage extends StatefulWidget {
+  final Order order;
+
+  const OrderDetailsPage({super.key, required this.order});
+
+  @override
+  State<OrderDetailsPage> createState() => _OrderDetailsPageState();
+}
+
+class _OrderDetailsPageState extends State<OrderDetailsPage> {
+  final OrderController _orderController = OrderController();
+  final cfs.FirebaseFirestore _firestore = cfs.FirebaseFirestore.instance;
+  final Map<String, String> _dishNames = {};
+  bool _loading = false;
+  bool _namesLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDishNames();
+  }
+
+  Future<void> _fetchDishNames() async {
+    final futures = widget.order.items.map((item) async {
+      final dishId = item['dishId'] as String;
+      final doc = await _firestore.collection('menu').doc(dishId).get();
+      if (doc.exists) {
+        _dishNames[dishId] = doc.data()!['name'] as String;
+      }
+    });
+    await Future.wait(futures);
+    setState(() {
+      _namesLoaded = true;
+    });
+  }
+
+  Future<void> _updateStatus(String status) async {
+    setState(() {
+      _loading = true;
+    });
+    try {
+      await _orderController.updateOrderStatus(widget.order.id!, status);
+      Toast.show('Order status updated to $status');
+      Navigator.pop(context);
+    } catch (e) {
+      Toast.show('Error updating status: $e');
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _cancelOrder() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Cancellation'),
+        content: const Text('Are you sure you want to cancel this order?'),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.orangeAccent),
+              foregroundColor: Colors.orangeAccent,
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
+          GradientButton(
+            colors: GradientColorSets.set3,
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updateStatus('cancelled');
+            },
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Order History Content')));
+    final status = widget.order.status;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Order Details',
+          style: TextStyle(color: Colors.white),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.redAccent, Colors.red, Colors.orangeAccent],
+            ),
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              status[0].toUpperCase() + status.substring(1),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: GradientCircularProgressIndicator())
+                : SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        ExpansionTile(
+                          title: const Text('Order Details'),
+                          initiallyExpanded: true,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Ordered By: ${widget.order.name}'),
+                                  const Text('Order Type: Dine-in'),
+                                  Text(
+                                    'Order Created At: ${DateFormat('MMM dd, yyyy hh:mm a').format(widget.order.createdAt)}',
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text('Items:'),
+                                  if (!_namesLoaded)
+                                    const Center(
+                                      child:
+                                          GradientCircularProgressIndicator(),
+                                    )
+                                  else
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: widget.order.items.length,
+                                      itemBuilder: (context, index) {
+                                        final item = widget.order.items[index];
+                                        final dishId = item['dishId'] as String;
+                                        final quantity =
+                                            item['quantity'] as int;
+                                        final name =
+                                            _dishNames[dishId] ??
+                                            'Unknown Dish';
+                                        return ListTile(
+                                          leading: Text(
+                                            name,
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          trailing: Text(
+                                            quantity.toString(),
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        ExpansionTile(
+                          title: const Text('Payment Details'),
+                          initiallyExpanded: false,
+                          children: [
+                            StreamBuilder<List<Payment>>(
+                              stream: PaymentController().getPaymentsByOrderId(
+                                widget.order.orderId,
+                              ),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                    child: GradientCircularProgressIndicator(),
+                                  );
+                                }
+                                if (snapshot.hasError) {
+                                  return Text('Error: ${snapshot.error}');
+                                }
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return const Text('No payments yet.');
+                                }
+                                final payments = snapshot.data!;
+                                return ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: payments.length,
+                                  itemBuilder: (context, index) {
+                                    final payment = payments[index];
+                                    return ListTile(
+                                      title: Text(
+                                        'Amount: ₱${payment.paymentDetails['totalAmount'] ?? 'N/A'}',
+                                      ),
+                                      subtitle: Text(
+                                        'Method: ${payment.paymentMethod} \n${payment.paymentMethod == 'Cash' ? '' : 'Provider: ${payment.paymentDetails['provider']}\nMobile Number: ${payment.paymentDetails['mobileNumber']}\nReference Num: ${payment.paymentDetails['referenceNumber']}'}',
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: _loading
+            ? const Center(child: GradientCircularProgressIndicator())
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                spacing: 10,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.orangeAccent),
+                      foregroundColor: Colors.orangeAccent,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Back',
+                      style: TextStyle(color: Colors.amber),
+                    ),
+                  ),
+                  if (status == 'reviewing')
+                    GradientButton(
+                      onPressed: _cancelOrder,
+                      colors: GradientColorSets.set1,
+                      child: const Text(
+                        'Cancel Order',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  if (status == 'reviewing')
+                    GradientButton(
+                      onPressed: () => _updateStatus('preparing'),
+                      child: const Text(
+                        'To Prepare',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  if (status == 'preparing')
+                    GradientButton(
+                      onPressed: () => _updateStatus('serving'),
+                      child: const Text(
+                        'To Serve',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  if (status == 'serving')
+                    GradientButton(
+                      onPressed: () => _updateStatus('completed'),
+                      child: const Text(
+                        'Complete',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+// END OF FILE for pages\cashier\order_details_page.dart
+
+
+// START | FILE: pages\cashier\order_history_page.dart
+// pages/cashier/order_history_page.dart
+import 'package:flutter/material.dart';
+import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart';
+import 'package:bbqlagao_and_beefpares/models/order.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/order_details_page.dart';
+import 'package:gradient_icon/gradient_icon.dart';
+import 'package:intl/intl.dart';
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+
+class OrderHistoryPage extends StatefulWidget {
+  const OrderHistoryPage({super.key});
+
+  @override
+  State<OrderHistoryPage> createState() => _OrderHistoryPageState();
+}
+
+class _OrderHistoryPageState extends State<OrderHistoryPage> {
+  final OrderController _controller = OrderController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Completed Orders',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                Text('Actions', style: Theme.of(context).textTheme.titleLarge),
+              ],
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<Order>>(
+              stream: _controller.getOrdersByStatus('completed'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: GradientCircularProgressIndicator(),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text('No completed orders found.'),
+                  );
+                }
+                final orders = snapshot.data!;
+                return ListView.builder(
+                  controller: _scrollController,
+                  itemCount: orders.length,
+                  itemBuilder: (context, index) {
+                    final order = orders[index];
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.red[50]!, Colors.orange[50]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Order #${order.orderId.toString()}",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(order.name),
+                                  Text(
+                                    'Completed: ${DateFormat('MMM dd, yyyy hh:mm a').format(order.createdAt)}',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: GradientIcon(
+                                icon: Icons.visibility,
+                                offset: Offset.zero,
+                                gradient: LinearGradient(
+                                  colors: GradientColorSets.set1,
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        OrderDetailsPage(order: order),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }
 
@@ -1750,7 +2394,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
 
 // START | FILE: pages\cashier\preparing_tab_page.dart
-// pages/cashier/preparing_tab_page.dart
+//preparing_tab_page.dart
 import 'package:bbqlagao_and_beefpares/styles/color.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
@@ -1758,6 +2402,7 @@ import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart
 import 'package:bbqlagao_and_beefpares/models/order.dart';
 import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:gradient_icon/gradient_icon.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/order_details_page.dart';
 
 class PreparingTabPage extends StatelessWidget {
   const PreparingTabPage({super.key});
@@ -1831,15 +2476,43 @@ class PreparingTabPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: GradientIcon(
-                              offset: Offset.zero,
-                              icon: Icons.visibility,
-                              gradient: LinearGradient(
-                                colors: GradientColorSets.set2,
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: GradientIcon(
+                                  offset: Offset.zero,
+                                  icon: Icons.restaurant,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set1,
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  try {
+                                    await _controller.updateOrderStatus(order.id!, 'serving');
+                                    Toast.show('Order set to serving');
+                                  } catch (e) {
+                                    Toast.show('Error: $e');
+                                  }
+                                },
                               ),
-                            ),
-                            onPressed: () => Toast.show('View Order'),
+                              IconButton(
+                                icon: GradientIcon(
+                                  offset: Offset.zero,
+                                  icon: Icons.visibility,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => OrderDetailsPage(order: order),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1854,12 +2527,11 @@ class PreparingTabPage extends StatelessWidget {
     );
   }
 }
-
 // END OF FILE for pages\cashier\preparing_tab_page.dart
 
 
 // START | FILE: pages\cashier\serving_tab_page.dart
-// pages/cashier/serving_tab_page.dart
+//serving_tab_page.dart
 import 'package:bbqlagao_and_beefpares/styles/color.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
 import 'package:flutter/material.dart';
@@ -1867,6 +2539,7 @@ import 'package:bbqlagao_and_beefpares/controllers/general/order_controller.dart
 import 'package:bbqlagao_and_beefpares/models/order.dart';
 import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
 import 'package:gradient_icon/gradient_icon.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/order_details_page.dart';
 
 class ServingTabPage extends StatelessWidget {
   const ServingTabPage({super.key});
@@ -1940,15 +2613,43 @@ class ServingTabPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: GradientIcon(
-                              icon: Icons.visibility,
-                              gradient: LinearGradient(
-                                colors: GradientColorSets.set3,
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.check,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set1,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
+                                onPressed: () async {
+                                  try {
+                                    await _controller.updateOrderStatus(order.id!, 'completed');
+                                    Toast.show('Order completed');
+                                  } catch (e) {
+                                    Toast.show('Error: $e');
+                                  }
+                                },
                               ),
-                              offset: Offset.zero,
-                            ),
-                            onPressed: () => Toast.show('View Order'),
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.visibility,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set3,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => OrderDetailsPage(order: order),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1963,8 +2664,288 @@ class ServingTabPage extends StatelessWidget {
     );
   }
 }
-
 // END OF FILE for pages\cashier\serving_tab_page.dart
+
+
+// START | FILE: pages\manager\category_page.dart
+//pages/manager/category_page.dart
+import 'package:bbqlagao_and_beefpares/styles/color.dart';
+import 'package:flutter/material.dart';
+import 'package:bbqlagao_and_beefpares/models/category.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/category_controller.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
+import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
+import 'package:bbqlagao_and_beefpares/widgets/customtoast.dart';
+import 'package:gradient_icon/gradient_icon.dart';
+
+class CategoryPage extends StatefulWidget {
+  final Function(bool)? onFabVisibilityChanged;
+
+  const CategoryPage({super.key, this.onFabVisibilityChanged});
+
+  @override
+  State<CategoryPage> createState() => _CategoryPageState();
+}
+
+class _CategoryPageState extends State<CategoryPage> {
+  final CategoryController _controller = CategoryController();
+  final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<bool> _showFabNotifier = ValueNotifier<bool>(true);
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+    widget.onFabVisibilityChanged?.call(true);
+  }
+
+  void _scrollListener() {
+    if (_scrollController.offset > 0) {
+      _showFabNotifier.value = false;
+      widget.onFabVisibilityChanged?.call(false);
+    } else {
+      _showFabNotifier.value = true;
+      widget.onFabVisibilityChanged?.call(true);
+    }
+  }
+
+  Future<void> _showCategoryDialog({String? id, String? initialName}) async {
+    final isEdit = id != null;
+    final nameCtrl = TextEditingController(text: initialName ?? '');
+    bool isSaving = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent closing by tapping outside
+      builder: (BuildContext dialogContext) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) => AlertDialog(
+          title: Text(isEdit ? 'Edit Category' : 'New Category'),
+          content: TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(labelText: 'Category Name'),
+            enabled: !isSaving, // Disable input while saving
+          ),
+          actions: [
+            if (!isSaving) // Only show buttons when not saving
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.orangeAccent),
+                ),
+                onPressed: () {
+                  nameCtrl.dispose(); // Dispose before popping
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.orangeAccent),
+                ),
+              ),
+            if (!isSaving)
+              GradientButton(
+                onPressed: () async {
+                  final name = nameCtrl.text.trim();
+                  if (name.isEmpty) {
+                    Toast.show('Name is required');
+                    return;
+                  }
+
+                  // Update UI to show loading state
+                  setState(() => isSaving = true);
+
+                  try {
+                    final cat = Category(name: name);
+                    if (isEdit) {
+                      await _controller.updateCategory(id, cat);
+                    } else {
+                      await _controller.addCategory(cat);
+                    }
+
+                    if (!context.mounted) return;
+                    nameCtrl.dispose(); // Dispose before popping
+                    Navigator.pop(dialogContext);
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    Toast.show('Error: ${e.toString()}');
+                    // Re-enable buttons on error
+                    setState(() => isSaving = false);
+                  }
+                },
+                child: const Text(
+                  'Save',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            if (isSaving)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: GradientCircularProgressIndicator(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Category'),
+        content: const Text('Are you sure you want to delete this category?'),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.orangeAccent),
+            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'No',
+              style: TextStyle(color: Colors.orangeAccent),
+            ),
+          ),
+          GradientButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _controller.deleteCategory(id);
+      } catch (e) {
+        Toast.show('Error: ${e.toString()}');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: _showFabNotifier,
+        builder: (context, isVisible, child) {
+          return Visibility(
+            visible: isVisible,
+            child: FloatingActionButton(
+              backgroundColor: Colors.redAccent[100],
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              onPressed: () => _showCategoryDialog(),
+              child: const Icon(Icons.add),
+            ),
+          );
+        },
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Category Name',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                Text('Actions', style: Theme.of(context).textTheme.titleLarge),
+              ],
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<Category>>(
+              stream: _controller.getCategories,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: GradientCircularProgressIndicator(),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No categories found.'));
+                }
+                final categories = snapshot.data!;
+                return ListView.builder(
+                  controller: _scrollController,
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final cat = categories[index];
+                    return Container(
+                      margin: EdgeInsetsGeometry.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: LightGradientColorSets.set1,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+
+                      child: Padding(
+                        padding: EdgeInsetsGeometry.symmetric(horizontal: 0),
+
+                        child: ListTile(
+                          title: Text(cat.name),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.edit,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set3,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
+                                onPressed: () => _showCategoryDialog(
+                                  id: cat.id,
+                                  initialName: cat.name,
+                                ),
+                                tooltip: "Edit Category",
+                              ),
+                              IconButton(
+                                icon: GradientIcon(
+                                  icon: Icons.delete,
+                                  gradient: LinearGradient(
+                                    colors: GradientColorSets.set2,
+                                  ),
+                                  offset: Offset.zero,
+                                ),
+                                onPressed: () => _confirmDelete(cat.id!),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _showFabNotifier.dispose();
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+}
+
+// END OF FILE for pages\manager\category_page.dart
 
 
 // START | FILE: pages\manager\inventory_page.dart
@@ -2478,8 +3459,10 @@ class _MenuPageState extends State<MenuPage> {
 
 
 // START | FILE: pages\manager\modify_dish_page.dart
+//pages/manager/modify_dish_page.dart
 import 'package:bbqlagao_and_beefpares/controllers/manager/inventory_controller.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/menu_controller.dart';
+import 'package:bbqlagao_and_beefpares/controllers/manager/category_controller.dart';
 import 'package:bbqlagao_and_beefpares/styles/color.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_button.dart';
 import 'package:bbqlagao_and_beefpares/widgets/gradient_progress_indicator.dart';
@@ -2490,6 +3473,7 @@ import 'package:bbqlagao_and_beefpares/widgets/gradient_checkbox.dart';
 import 'package:gradient_icon/gradient_icon.dart';
 import '../../models/dish.dart';
 import '../../models/item.dart';
+import '../../models/category.dart';
 
 class ModifyDishPage extends StatefulWidget {
   final String? dishId;
@@ -2511,6 +3495,7 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
   final MenuController _menuController = MenuController();
   final InventoryController _inventoryController = InventoryController();
   List<Map<String, dynamic>> _selectedIngredients = [];
+  List<Map<String, dynamic>> _selectedCategories = [];
   double _price = 0.0;
   bool _isLoading = false;
 
@@ -2530,6 +3515,13 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
         widget.dish!.ingredients
             .where((ing) => ing['itemId'] != null)
             .map((ing) => {'id': ing['itemId'], 'quantity': ing['quantity']}),
+      );
+      _selectedCategories = List<Map<String, dynamic>>.from(
+        widget.dish!.categories
+            .where((cat) => cat['categoryId'] != null)
+            .map(
+              (cat) => {'id': cat['categoryId'], 'name': cat['categoryName']},
+            ),
       );
       _loadIngredientNames();
     }
@@ -2591,6 +3583,21 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
         onAdd: (newIngredients) {
           setState(() {
             _selectedIngredients.addAll(newIngredients);
+          });
+        },
+      ),
+    );
+  }
+
+  void _addCategories() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _CategorySelectionBottomSheet(
+        selectedCategories: _selectedCategories,
+        onSave: (selected) {
+          setState(() {
+            _selectedCategories = selected;
           });
         },
       ),
@@ -2707,32 +3714,25 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
         children: [
           SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(16.0).copyWith(bottom: 80.0),
+              padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Dish Name'),
                     TextFormField(
                       controller: _nameCtrl,
-                      decoration: const InputDecoration(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Dish name is required';
-                        }
-                        return null;
-                      },
+                      decoration: const InputDecoration(labelText: 'Name'),
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
                     ),
-                    const Divider(),
-                    const Text('Description'),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _descCtrl,
-                      decoration: const InputDecoration(),
-                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                      ),
                     ),
-                    const Divider(),
-                    const Text('Price'),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         IconButton(
@@ -2742,16 +3742,12 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                         Expanded(
                           child: TextFormField(
                             controller: _priceCtrl,
-                            decoration: const InputDecoration(),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Price',
                             ),
-                            validator: (value) {
-                              if (value == null ||
-                                  double.tryParse(value) == null) {
-                                return 'Please enter a valid price';
-                              }
-                              return null;
+                            keyboardType: TextInputType.number,
+                            onChanged: (val) {
+                              _price = double.tryParse(val) ?? 0.0;
                             },
                           ),
                         ),
@@ -2761,136 +3757,135 @@ class _ModifyDishPageState extends State<ModifyDishPage> {
                         ),
                       ],
                     ),
-                    const Divider(),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _imageUrlCtrl,
+                      decoration: const InputDecoration(labelText: 'Image URL'),
+                    ),
+                    _buildImagePreview(),
+                    const SizedBox(height: 16),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        const Text('Publish Dish'),
-                        const Spacer(),
-                        Switch(
-                          value: _isVisible,
-                          onChanged: (value) =>
-                              setState(() => _isVisible = value),
-                          activeThumbColor: Colors.amber,
+                        Expanded(
+                          child: GradientButton(
+                            onPressed: _addCategories,
+                            child: const Text(
+                              'Select Categories',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: GradientButton(
+                            onPressed: _addIngredient,
+                            child: const Text(
+                              'Add Ingredients',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const Divider(),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GradientButton(
-                        onPressed: _addIngredient,
-                        child: Text(
-                          'Add Ingredient',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 16),
-                    const Text('Selected Ingredients:'),
                     _buildIngredientsList(),
-                    const Divider(),
-                    const Text('Image URL'),
-                    TextFormField(
-                      controller: _imageUrlCtrl,
-                      decoration: const InputDecoration(),
-                    ),
-                    _buildImagePreview(),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  !_isLoading
-                      ? OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.orangeAccent),
-                            foregroundColor: Colors.orangeAccent,
-                            backgroundColor: Colors.white54,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        )
-                      : const SizedBox.shrink(),
-                  const SizedBox(width: 8),
-                  _isLoading
-                      ? const GradientCircularProgressIndicator()
-                      : GradientButton(
-                          colors: GradientColorSets.set3,
-                          onPressed: () async {
-                            if (_isLoading) return;
-                            if (_formKey.currentState!.validate()) {
-                              setState(() => _isLoading = true);
-                              try {
-                                final bool available =
-                                    await _computeAvailability();
-                                final ingredientsForSave = _selectedIngredients
-                                    .where((ing) => ing['id'] != null)
-                                    .map(
-                                      (ing) => {
-                                        'itemId': ing['id'],
-                                        'quantity': ing['quantity'],
-                                      },
-                                    )
-                                    .toList();
-                                final newDish = Dish(
-                                  id: widget.dishId,
-                                  name: _nameCtrl.text,
-                                  description: _descCtrl.text.isEmpty
-                                      ? null
-                                      : _descCtrl.text,
-                                  price: double.parse(_priceCtrl.text),
-                                  isVisible: _isVisible,
-                                  isAvailable: available,
-                                  ingredients: ingredientsForSave,
-                                  imageUrl: _imageUrlCtrl.text.isEmpty
-                                      ? null
-                                      : _imageUrlCtrl.text,
-                                );
-                                if (widget.dishId == null) {
-                                  await _menuController.addDish(newDish);
-                                } else {
-                                  await _menuController.updateDish(
-                                    widget.dishId!,
-                                    newDish,
-                                  );
-                                }
-                                if (context.mounted) {
-                                  Navigator.pop(context);
-                                }
-                              } catch (e) {
-                                Toast.show('Error: ${e.toString()}');
-                              } finally {
-                                if (context.mounted) {
-                                  setState(() => _isLoading = false);
-                                }
-                              }
-                            }
+          if (_isLoading)
+            const Center(child: GradientCircularProgressIndicator()),
+        ],
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GradientCheckbox(
+                  value: _isVisible,
+                  onChanged: (val) => setState(() => _isVisible = val!),
+                ),
+                const Text('Visible to Customers'),
+              ],
+            ),
+            GradientButton(
+              onPressed: () async {
+                if (_formKey.currentState!.validate() && !_isLoading) {
+                  setState(() => _isLoading = true);
+                  try {
+                    final available = await _computeAvailability();
+                    final ingredientsForSave = _selectedIngredients
+                        .map(
+                          (ing) => {
+                            'itemId': ing['id'],
+                            'quantity': ing['quantity'] ?? 1,
                           },
-                          child: Text(
-                            buttonText,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                ],
+                        )
+                        .toList();
+                    final categoriesForSave = _selectedCategories
+                        .map(
+                          (cat) => {
+                            'categoryId': cat['id'],
+                            'categoryName': cat['name'],
+                          },
+                        )
+                        .toList();
+                    final newDish = Dish(
+                      name: _nameCtrl.text,
+                      description: _descCtrl.text.isEmpty
+                          ? null
+                          : _descCtrl.text,
+                      price: double.parse(_priceCtrl.text),
+                      isVisible: _isVisible,
+                      isAvailable: available,
+                      ingredients: ingredientsForSave,
+                      categories: categoriesForSave,
+                      imageUrl: _imageUrlCtrl.text.isEmpty
+                          ? null
+                          : _imageUrlCtrl.text,
+                    );
+                    if (widget.dishId == null) {
+                      await _menuController.addDish(newDish);
+                    } else {
+                      await _menuController.updateDish(widget.dishId!, newDish);
+                    }
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    Toast.show('Error: ${e.toString()}');
+                  } finally {
+                    if (context.mounted) {
+                      setState(() => _isLoading = false);
+                    }
+                  }
+                }
+              },
+              child: Text(
+                buttonText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2927,7 +3922,9 @@ class _IngredientSelectionBottomSheetState
   final List<Map<String, dynamic>> _selectedIngredients = [];
 
   bool _isSelected(Item item) {
-    return _selectedIngredients.any((m) => m['id'] == item.id);
+    // Check both currently selected and already added ingredients
+    return _selectedIngredients.any((m) => m['id'] == item.id) ||
+        widget.selectedIngredientIds.contains(item.id);
   }
 
   @override
@@ -2963,36 +3960,45 @@ class _IngredientSelectionBottomSheetState
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('No ingredients available.'));
                 }
-                final availableIngredients = snapshot.data!
-                    .where(
-                      (item) =>
-                          !widget.selectedIngredientIds.contains(item.id) &&
-                          item.name.toLowerCase().contains(_searchText),
-                    )
-                    .toList();
+                final availableIngredients = snapshot.data!.where((item) {
+                  // Filter out items that are already selected in the main ingredient list
+                  final alreadyAdded = widget.selectedIngredientIds.contains(
+                    item.id,
+                  );
+                  final matchesSearch = item.name.toLowerCase().contains(
+                    _searchText,
+                  );
+                  return !alreadyAdded && matchesSearch;
+                }).toList();
                 return ListView.builder(
                   controller: scrollController,
                   itemCount: availableIngredients.length,
                   itemBuilder: (context, index) {
                     final item = availableIngredients[index];
                     final isSelected = _isSelected(item);
+                    final alreadyAdded = widget.selectedIngredientIds.contains(
+                      item.id,
+                    );
                     return ListTile(
+                      enabled: !alreadyAdded,
                       leading: GradientCheckbox(
                         value: isSelected,
-                        onChanged: (val) {
-                          setState(() {
-                            if (val!) {
-                              _selectedIngredients.add({
-                                'id': item.id,
-                                'name': item.name,
-                              });
-                            } else {
-                              _selectedIngredients.removeWhere(
-                                (m) => m['id'] == item.id,
-                              );
-                            }
-                          });
-                        },
+                        onChanged: alreadyAdded
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  if (val!) {
+                                    _selectedIngredients.add({
+                                      'id': item.id,
+                                      'name': item.name,
+                                    });
+                                  } else {
+                                    _selectedIngredients.removeWhere(
+                                      (m) => m['id'] == item.id,
+                                    );
+                                  }
+                                });
+                              },
                       ),
                       title: Text(item.name),
                       subtitle: Text('Stock: ${item.quantity}'),
@@ -3042,8 +4048,159 @@ class _IngredientSelectionBottomSheetState
                     widget.onAdd(newIngredients);
                     Navigator.pop(context);
                   },
-                  child: Text(
+                  child: const Text(
                     'Add Ingredient',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategorySelectionBottomSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> selectedCategories;
+  final Function(List<Map<String, dynamic>>) onSave;
+
+  const _CategorySelectionBottomSheet({
+    required this.selectedCategories,
+    required this.onSave,
+  });
+
+  @override
+  State<_CategorySelectionBottomSheet> createState() =>
+      _CategorySelectionBottomSheetState();
+}
+
+class _CategorySelectionBottomSheetState
+    extends State<_CategorySelectionBottomSheet> {
+  String _searchText = '';
+  late List<Map<String, dynamic>> _currentSelected;
+  final CategoryController _categoryController = CategoryController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Create a deep copy of selected categories to avoid modifying original list
+    _currentSelected = List.from(
+      widget.selectedCategories.map((cat) => Map<String, dynamic>.from(cat)),
+    );
+  }
+
+  bool _isSelected(String? id) {
+    return _currentSelected.any((cat) => cat['id'] == id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.8,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (val) =>
+                  setState(() => _searchText = val.toLowerCase()),
+              decoration: const InputDecoration(
+                labelText: 'Search Categories',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<Category>>(
+              stream: _categoryController.getCategories,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: GradientCircularProgressIndicator(),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No categories available.'));
+                }
+                final categories = snapshot.data!
+                    .where(
+                      (cat) => cat.name.toLowerCase().contains(_searchText),
+                    )
+                    .toList();
+                return ListView.builder(
+                  controller: scrollController,
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final cat = categories[index];
+                    final isSelected = _isSelected(cat.id);
+                    return ListTile(
+                      leading: GradientCheckbox(
+                        value: isSelected,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val!) {
+                              _currentSelected.add({
+                                'id': cat.id,
+                                'name': cat.name,
+                              });
+                            } else {
+                              _currentSelected.removeWhere(
+                                (m) => m['id'] == cat.id,
+                              );
+                            }
+                          });
+                        },
+                      ),
+                      title: Text(cat.name),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () {
+                    // Restore original selection on cancel
+                    setState(() {
+                      _currentSelected = List.from(
+                        widget.selectedCategories.map(
+                          (cat) => Map<String, dynamic>.from(cat),
+                        ),
+                      );
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.orange),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.orange),
+                  ),
+                ),
+                SizedBox(width: 10),
+                GradientButton(
+                  onPressed: () {
+                    // Save the current selection
+                    widget.onSave(_currentSelected);
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Save Categories',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -3484,7 +4641,7 @@ class _ModifyUserPageState extends State<ModifyUserPage> {
 
 
 // START | FILE: pages\manager\staff_home_page.dart
-// pages\manager\staff_home_page.dart
+//pages/manager/staff_home_page.dart
 import 'package:flutter/material.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/inventory_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/menu_page.dart';
@@ -3492,6 +4649,10 @@ import 'package:bbqlagao_and_beefpares/pages/manager/staff_list_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_item_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_dish_page.dart';
 import 'package:bbqlagao_and_beefpares/pages/manager/modify_user_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/manager/category_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/orders_page.dart';
+import 'package:bbqlagao_and_beefpares/pages/cashier/order_history_page.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class StaffHomePage extends StatefulWidget {
   const StaffHomePage({super.key});
@@ -3506,7 +4667,9 @@ class _StaffHomePageState extends State<StaffHomePage> {
   String _tooltip = 'Add Menu';
   late ValueNotifier<bool> _showFabNotifier;
   bool _isManagementExpanded = true;
-  bool _isUserManagementExpanded = true;
+  bool _isUserManagementExpanded = false;
+  bool _isAuditingExpanded = false;
+  CategoryPage categoryPage = CategoryPage();
 
   void _onFabVisibilityChanged(bool visible) {
     _showFabNotifier.value = visible;
@@ -3542,9 +4705,16 @@ class _StaffHomePageState extends State<StaffHomePage> {
         ),
 
         flexibleSpace:
-            _currentPage == 'inventory' ||
-                _currentPage == 'menu' ||
-                _currentPage == 'staffs'
+            [
+              "dashboard",
+              "inventory",
+              "menu",
+              "inventory",
+              "category",
+              "orders",
+              "order_history",
+              "staffs",
+            ].contains(_currentPage)
             ? Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -3598,6 +4768,48 @@ class _StaffHomePageState extends State<StaffHomePage> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: <Widget>[
+                  Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Currently Logged-in as:'),
+                        SizedBox(width: 5),
+                        Icon(FontAwesomeIcons.circleUser, size: 15),
+                        SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            'TestTestTestTestTestTestTestTestTestTestTestTestTestTest',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.home,
+                      color: _currentPage == 'dashboard'
+                          ? Colors.white
+                          : Colors.redAccent,
+                    ),
+                    title: Text(
+                      'Dashboard',
+                      style: TextStyle(
+                        color: _currentPage == 'dashboard'
+                            ? Colors.white
+                            : Colors.redAccent,
+                      ),
+                    ),
+                    selected: _currentPage == 'dashboard',
+                    selectedTileColor: Colors.redAccent.withValues(alpha: 0.75),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _currentPage = 'dashboard';
+                        _appBarTitle = 'Staff Dashboard';
+                      });
+                    },
+                  ),
                   ExpansionTile(
                     initiallyExpanded: _isManagementExpanded,
                     onExpansionChanged: (expanded) {
@@ -3670,6 +4882,106 @@ class _StaffHomePageState extends State<StaffHomePage> {
                           });
                         },
                       ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.category,
+                          color: _currentPage == 'category'
+                              ? Colors.white
+                              : Colors.redAccent,
+                        ),
+                        title: Text(
+                          'Category',
+                          style: TextStyle(
+                            color: _currentPage == 'category'
+                                ? Colors.white
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        selected: _currentPage == 'category',
+                        selectedTileColor: Colors.redAccent.withValues(
+                          alpha: .75,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _currentPage = 'category';
+                            _appBarTitle = 'Category';
+                            _tooltip = 'Add Category';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  ExpansionTile(
+                    initiallyExpanded: _isAuditingExpanded,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        _isAuditingExpanded = expanded;
+                      });
+                    },
+                    title: const Text(
+                      'Auditing',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                    leading: const Icon(
+                      Icons.business,
+                      color: Colors.redAccent,
+                    ),
+                    children: <Widget>[
+                      ListTile(
+                        leading: Icon(
+                          Icons.list,
+                          color: _currentPage == 'orders'
+                              ? Colors.white
+                              : Colors.redAccent,
+                        ),
+                        title: Text(
+                          'Orders',
+                          style: TextStyle(
+                            color: _currentPage == 'orders'
+                                ? Colors.white
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        selected: _currentPage == 'orders',
+                        selectedTileColor: Colors.redAccent.withValues(
+                          alpha: 0.75,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _currentPage = 'orders';
+                            _appBarTitle = 'Orders';
+                          });
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.history,
+                          color: _currentPage == 'order_history'
+                              ? Colors.white
+                              : Colors.redAccent,
+                        ),
+                        title: Text(
+                          'Order History',
+                          style: TextStyle(
+                            color: _currentPage == 'order_history'
+                                ? Colors.white
+                                : Colors.redAccent,
+                          ),
+                        ),
+                        selected: _currentPage == 'order_history',
+                        selectedTileColor: Colors.redAccent.withValues(
+                          alpha: .75,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _currentPage = 'order_history';
+                            _appBarTitle = 'Order History';
+                          });
+                        },
+                      ),
                     ],
                   ),
                   ExpansionTile(
@@ -3687,7 +4999,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
                     children: <Widget>[
                       ListTile(
                         leading: Icon(
-                          Icons.person,
+                          FontAwesomeIcons.userGear,
                           color: _currentPage == 'staffs'
                               ? Colors.white
                               : Colors.redAccent,
@@ -3734,9 +5046,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
       ),
       body: _buildBody(),
       floatingActionButton:
-          (_currentPage == 'inventory' ||
-              _currentPage == 'menu' ||
-              _currentPage == 'staffs')
+          ["inventory", "menu", "staffs"].contains(_currentPage)
           ? ValueListenableBuilder<bool>(
               valueListenable: _showFabNotifier,
               builder: (context, showFab, child) {
@@ -3746,27 +5056,33 @@ class _StaffHomePageState extends State<StaffHomePage> {
                   shape: const CircleBorder(),
                   foregroundColor: Colors.white,
                   onPressed: () {
-                    if (_currentPage == 'inventory') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModifyItemPage(),
-                        ),
-                      );
-                    } else if (_currentPage == 'menu') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModifyDishPage(),
-                        ),
-                      );
-                    } else if (_currentPage == 'staffs') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ModifyUserPage(),
-                        ),
-                      );
+                    switch (_currentPage) {
+                      case 'inventory':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ModifyItemPage(),
+                          ),
+                        );
+                        break;
+                      case 'menu':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ModifyDishPage(),
+                          ),
+                        );
+                        break;
+                      case 'staffs':
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ModifyUserPage(),
+                          ),
+                        );
+                        break;
+                      case 'category':
+                        break;
                     }
                   },
                   tooltip: _tooltip,
@@ -3786,6 +5102,12 @@ class _StaffHomePageState extends State<StaffHomePage> {
         return InventoryPage(onFabVisibilityChanged: _onFabVisibilityChanged);
       case 'staffs':
         return StaffListPage(onFabVisibilityChanged: _onFabVisibilityChanged);
+      case 'category':
+        return CategoryPage(onFabVisibilityChanged: _onFabVisibilityChanged);
+      case 'orders':
+        return OrdersPage(onFabVisibilityChanged: _onFabVisibilityChanged);
+      case 'order_history':
+        return OrderHistoryPage();
       default:
         return const Center(child: Text('Page not implemented'));
     }
@@ -3803,6 +5125,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:bbqlagao_and_beefpares/controllers/manager/users_controller.dart';
 import 'package:bbqlagao_and_beefpares/models/user.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gradient_icon/gradient_icon.dart';
 import 'modify_user_page.dart';
 
@@ -3904,7 +5227,7 @@ class _StaffListPageState extends State<StaffListPage> {
                             ),
                           ),
                           IconButton(
-                            icon: const GradientIcon(
+                            icon: GradientIcon(
                               icon: Icons.edit,
                               gradient: LinearGradient(
                                 colors: GradientColorSets.set2,
@@ -3922,7 +5245,7 @@ class _StaffListPageState extends State<StaffListPage> {
                                 ),
                               );
                             },
-                            onLongPress: () => Toast.show("Edit Staff"),
+                            tooltip: "Edit Staff",
                           ),
                         ],
                       ),
@@ -3965,6 +5288,24 @@ class GradientColorSets {
     Colors.orangeAccent,
     Colors.redAccent,
     Colors.amber,
+  ];
+}
+
+class LightGradientColorSets {
+  static List<Color> set1 = [
+    Colors.red.shade50,
+    Colors.amber.shade50,
+    Colors.orange.shade50,
+  ];
+  static List<Color> set2 = [
+    Colors.amber.shade50,
+    Colors.orange.shade50,
+    Colors.red.shade50,
+  ];
+  static List<Color> set3 = [
+    Colors.orange.shade50,
+    Colors.red.shade50,
+    Colors.amber.shade50,
   ];
 }
 

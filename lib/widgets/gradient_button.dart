@@ -8,6 +8,8 @@ class GradientButton extends StatelessWidget {
   final List<Color>? colors;
   final double? radius;
   final EdgeInsets? padding;
+  final double? width, height;
+  final AlignmentGeometry? alignment;
 
   const GradientButton({
     super.key,
@@ -18,11 +20,17 @@ class GradientButton extends StatelessWidget {
     this.colors = const [Colors.orange, Colors.red, Colors.amber],
     this.radius = 20,
     this.padding = const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+    this.width,
+    this.height,
+    this.alignment,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: width,
+      height: height,
+      alignment: alignment,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

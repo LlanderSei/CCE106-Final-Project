@@ -102,7 +102,7 @@ class _ToastWidgetState extends State<_ToastWidget>
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: 80,
+      bottom: 20,
       left: MediaQuery.of(context).size.width * 0.1,
       right: MediaQuery.of(context).size.width * 0.1,
       child: Material(
@@ -113,6 +113,7 @@ class _ToastWidgetState extends State<_ToastWidget>
             position: _slideUpAnimation,
             child: Center(
               child: Container(
+                width: double.infinity,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
