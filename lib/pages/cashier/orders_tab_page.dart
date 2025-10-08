@@ -67,7 +67,7 @@ class _OrdersTabPageState extends State<OrdersTabPage> {
             colors: GradientColorSets.set1,
             onPressed: () async {
               Navigator.pop(context);
-              await _updateStatus(order, 'cancelled');
+              await _controller.updateOrderStatus(order.id!, 'cancelled', timestamp: DateTime.now());
             },
             child: const Text('Yes', style: TextStyle(color: Colors.white)),
           ),

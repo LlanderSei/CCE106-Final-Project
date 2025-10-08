@@ -17,6 +17,16 @@ class OrderController {
             snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList(),
       );
 
+  Stream<List<Order>> getCompletedOrCancelledOrders() => _firestore
+      .collection(_collection)
+      .where('status', whereIn: ['completed', 'cancelled'])
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList(),
+      );
+
   Future<int> getNextOrderId() async {
     final snapshot = await _firestore
         .collection(_collection)
@@ -47,6 +57,8 @@ class OrderController {
         data['preparedAt'] = fs.Timestamp.fromDate(timestamp);
       if (status == 'serving')
         data['servedAt'] = fs.Timestamp.fromDate(timestamp);
+      if (status == 'cancelled')
+        data['cancelledAt'] = fs.Timestamp.fromDate(timestamp);
     }
     await _firestore.collection(_collection).doc(orderId).update(data);
   }

@@ -13,6 +13,7 @@ class Order {
   final DateTime createdAt;
   final DateTime? preparedAt;
   final DateTime? servedAt;
+  final DateTime? cancelledAt;
   final DateTime updatedAt;
 
   Order({
@@ -27,6 +28,7 @@ class Order {
     required this.createdAt,
     this.preparedAt,
     this.servedAt,
+    this.cancelledAt,
     required this.updatedAt,
   });
 
@@ -44,6 +46,7 @@ class Order {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       preparedAt: (data['preparedAt'] as Timestamp?)?.toDate(),
       servedAt: (data['servedAt'] as Timestamp?)?.toDate(),
+      cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -60,6 +63,7 @@ class Order {
       'createdAt': Timestamp.fromDate(createdAt),
       if (preparedAt != null) 'preparedAt': Timestamp.fromDate(preparedAt!),
       if (servedAt != null) 'servedAt': Timestamp.fromDate(servedAt!),
+      if (cancelledAt != null) 'cancelledAt': Timestamp.fromDate(cancelledAt!),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }

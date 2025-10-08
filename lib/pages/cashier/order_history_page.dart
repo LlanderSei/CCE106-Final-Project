@@ -30,7 +30,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
               children: [
                 Expanded(
                   child: Text(
-                    'Completed Orders',
+                    'Completed and Cancelled Orders',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -40,7 +40,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
           ),
           Expanded(
             child: StreamBuilder<List<Order>>(
-              stream: _controller.getOrdersByStatus('completed'),
+              stream: _controller.getCompletedOrCancelledOrders(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -52,7 +52,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
-                    child: Text('No completed orders found.'),
+                    child: Text('No completed or cancelled orders found.'),
                   );
                 }
                 final orders = snapshot.data!;
@@ -90,7 +90,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                   ),
                                   Text(order.name),
                                   Text(
-                                    'Completed: ${DateFormat('MMM dd, yyyy hh:mm a').format(order.createdAt)}',
+                                    order.status == 'completed'
+                                        ? 'Completed: ${DateFormat('MMM dd, yyyy hh:mm a').format(order.createdAt)}'
+                                        : 'Cancelled: ${order.cancelledAt != null ? DateFormat('MMM dd, yyyy hh:mm a').format(order.cancelledAt!) : 'N/A'}',
                                   ),
                                 ],
                               ),
