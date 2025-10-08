@@ -302,11 +302,35 @@ class _MenuPageState extends State<MenuPage> {
                       height: 140,
                       width: double.infinity,
                       color: Colors.grey.shade200,
-                      child: const Icon(
-                        Icons.restaurant,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
+                      child: image.isNotEmpty
+                          ? (image.startsWith('http')
+                                ? Image.network(
+                                    image,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                              Icons.restaurant,
+                                              size: 64,
+                                              color: Colors.grey,
+                                            ),
+                                  )
+                                : Image.asset(
+                                    image,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                              Icons.restaurant,
+                                              size: 64,
+                                              color: Colors.grey,
+                                            ),
+                                  ))
+                          : const Icon(
+                              Icons.restaurant,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
                     ),
                   ),
                   if (isPopular)

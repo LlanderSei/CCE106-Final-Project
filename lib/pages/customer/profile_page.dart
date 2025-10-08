@@ -1,15 +1,43 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../controllers/auth/auth_controller.dart';
 import '../../controllers/customer/cart_controller.dart';
+import '../../controllers/general/order_controller.dart';
+import '../../models/order.dart';
 import '../../models/user.dart';
 import '../auth/login_page.dart';
 import 'order_history_page.dart';
 import 'cart_page.dart';
 import 'tracking_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final AuthController _authController = AuthController();
+  final OrderController _orderController = OrderController();
+  String? _userId;
+  int _servingOrdersCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await _authController.getCurrentUser();
+    if (user != null) {
+      setState(() {
+        _userId = user.id;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +50,7 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Profile'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -130,17 +155,31 @@ class ProfilePage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildQuickAction(
-                  context,
-                  icon: Icons.local_shipping_outlined,
-                  label: 'Track',
-                  color: const Color(0xFFFF8A65),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TrackingPage(),
-                    ),
-                  ),
+                child: StreamBuilder<List<Order>>(
+                  stream: _userId != null
+                      ? _orderController.getOrdersByUser(_userId!)
+                      : null,
+                  builder: (context, snapshot) {
+                    int servingCount = 0;
+                    if (snapshot.hasData && snapshot.data != null) {
+                      servingCount = snapshot.data!
+                          .where((order) => order.status == 'serving')
+                          .length;
+                    }
+                    return _buildQuickAction(
+                      context,
+                      icon: Icons.local_shipping_outlined,
+                      label: 'Track',
+                      color: const Color(0xFFFF8A65),
+                      onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TrackingPage(),
+                        ),
+                      ),
+                      badgeCount: servingCount,
+                    );
+                  },
                 ),
               ),
             ],
@@ -198,7 +237,7 @@ class ProfilePage extends StatelessWidget {
             title: 'Order History',
             subtitle: 'View your past orders',
             badge: '3',
-            onTap: () => Navigator.push(
+            onTap: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const OrderHistoryPage()),
             ),
@@ -402,10 +441,12 @@ class ProfilePage extends StatelessWidget {
     required String label,
     required Color color,
     required VoidCallback onTap,
+    int? badgeCount,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -418,25 +459,49 @@ class ProfilePage extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color, size: 30),
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: color, size: 30),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+            if (badgeCount != null && badgeCount > 0)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    badgeCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -486,22 +551,22 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
-            if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD84315),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  badge,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+            // if (badge != null)
+            //   Container(
+            //     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            //     decoration: BoxDecoration(
+            //       color: const Color(0xFFD84315),
+            //       borderRadius: BorderRadius.circular(10),
+            //     ),
+            //     child: Text(
+            //       badge,
+            //       style: const TextStyle(
+            //         color: Colors.white,
+            //         fontSize: 11,
+            //         fontWeight: FontWeight.bold,
+            //       ),
+            //     ),
+            //   ),
           ],
         ),
         subtitle: Padding(
@@ -817,13 +882,10 @@ class ProfilePage extends StatelessWidget {
       // Sign out the user
       userProvider.clearUser(); // Clear the user data from provider
 
-      // Navigate to login page
+      // Navigate to hello page
       if (context.mounted) {
         Navigator.pop(context); // Close dialog
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        );
+        Navigator.pushReplacementNamed(context, '/hello');
       }
     } catch (e) {
       if (context.mounted) {

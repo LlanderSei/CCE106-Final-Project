@@ -4,7 +4,9 @@ import 'menu_page.dart';
 import 'profile_page.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
-  const CustomerHomeScreen({super.key});
+  const CustomerHomeScreen({super.key, this.initialSelectedIndex = 0});
+
+  final int initialSelectedIndex;
 
   @override
   State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
@@ -12,6 +14,12 @@ class CustomerHomeScreen extends StatefulWidget {
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialSelectedIndex;
+  }
 
   List<Widget> get _screens => [
     MenuPage(onCartPressed: () => setState(() => _selectedIndex = 1)),

@@ -64,14 +64,13 @@ class _HelloPageState extends State<HelloPage> {
           child: Column(
             children: [
               // Back button aligned to top left
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-
+              // Align(
+              //   alignment: Alignment.topLeft,
+              //   child: IconButton(
+              //     icon: const Icon(Icons.arrow_back),
+              //     onPressed: () => Navigator.pop(context),
+              //   ),
+              // ),
               const Spacer(flex: 2),
 
               // Logo with some breathing room

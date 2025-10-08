@@ -69,10 +69,7 @@ class _CartPageState extends State<CartPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Cart'),
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back),
-        //   onPressed: () => Navigator.pop(context),
-        // ),
+        automaticallyImplyLeading: false,
         actions: _cartController == null
             ? []
             : [
@@ -242,42 +239,42 @@ class _CartPageState extends State<CartPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               // Queue number
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF8F0),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFD84315,
-                                    ).withOpacity(0.2),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(
-                                      Icons.receipt_long,
-                                      size: 20,
-                                      color: Color(0xFFD84315),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Queue Number: #12',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFFD84315),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              // Container(
+                              //   padding: const EdgeInsets.symmetric(
+                              //     horizontal: 16,
+                              //     vertical: 12,
+                              //   ),
+                              //   decoration: BoxDecoration(
+                              //     color: const Color(0xFFFFF8F0),
+                              //     borderRadius: BorderRadius.circular(12),
+                              //     border: Border.all(
+                              //       color: const Color(
+                              //         0xFFD84315,
+                              //       ).withOpacity(0.2),
+                              //     ),
+                              //   ),
+                              //   child: Row(
+                              //     mainAxisAlignment: MainAxisAlignment.center,
+                              //     children: const [
+                              //       Icon(
+                              //         Icons.receipt_long,
+                              //         size: 20,
+                              //         color: Color(0xFFD84315),
+                              //       ),
+                              //       SizedBox(width: 8),
+                              //       Text(
+                              //         'Queue Number: #12',
+                              //         style: TextStyle(
+                              //           fontSize: 14,
+                              //           fontWeight: FontWeight.w600,
+                              //           color: Color(0xFFD84315),
+                              //         ),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // ),
 
-                              const SizedBox(height: 16),
+                              // const SizedBox(height: 16),
 
                               // Total row
                               Row(

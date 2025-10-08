@@ -1,4 +1,3 @@
-- [x] Update lib/models/order.dart: Add DateTime? cancelledAt field, update constructor, fromFirestore, toFirestore.
-- [x] Update lib/controllers/general/order_controller.dart: Modify updateOrderStatus to set cancelledAt when status == 'cancelled'.
-- [x] Update lib/pages/cashier/orders_tab_page.dart: In \_cancelOrder, pass current timestamp to updateOrderStatus.
-- [x] Update lib/pages/cashier/order_history_page.dart: Change stream to get orders with status 'completed' or 'cancelled'. Update UI to show "Completed: [createdAt]" or "Cancelled: [cancelledAt or 'None']" based on status.
+- [x] Update customer profile sign out navigation to go to HelloPage instead of LoginPage for consistency.
+- [x] Ensure HelloPage has no leading back button (already commented out).
+- [x] Prevent back button from appearing in cart and profile tabs after login/sign up.

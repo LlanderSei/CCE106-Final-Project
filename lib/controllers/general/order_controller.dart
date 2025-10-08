@@ -27,6 +27,27 @@ class OrderController {
             snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList(),
       );
 
+  Stream<List<Order>> getOrdersByUser(String userId) => _firestore
+      .collection(_collection)
+      .where('userId', isEqualTo: userId)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList(),
+      );
+
+  Stream<List<Order>> getOngoingOrdersByUser(String userId) => _firestore
+      .collection(_collection)
+      .where('userId', isEqualTo: userId)
+      .where('status', whereIn: ['reviewing', 'preparing', 'serving'])
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList(),
+      );
+
   Future<int> getNextOrderId() async {
     final snapshot = await _firestore
         .collection(_collection)

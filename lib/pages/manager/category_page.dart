@@ -26,16 +26,22 @@ class _CategoryPageState extends State<CategoryPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    widget.onFabVisibilityChanged?.call(true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onFabVisibilityChanged?.call(true);
+    });
   }
 
   void _scrollListener() {
     if (_scrollController.offset > 0) {
       _showFabNotifier.value = false;
-      widget.onFabVisibilityChanged?.call(false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onFabVisibilityChanged?.call(false);
+      });
     } else {
       _showFabNotifier.value = true;
-      widget.onFabVisibilityChanged?.call(true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onFabVisibilityChanged?.call(true);
+      });
     }
   }
 

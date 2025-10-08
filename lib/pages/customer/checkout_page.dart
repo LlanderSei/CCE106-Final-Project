@@ -367,24 +367,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD84315),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                'Queue #12',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
+                            // Container(
+                            //   padding: const EdgeInsets.symmetric(
+                            //     horizontal: 12,
+                            //     vertical: 6,
+                            //   ),
+                            //   decoration: BoxDecoration(
+                            //     color: const Color(0xFFD84315),
+                            //     borderRadius: BorderRadius.circular(20),
+                            //   ),
+                            //   child: const Text(
+                            //     'Queue #12',
+                            //     style: TextStyle(
+                            //       color: Colors.white,
+                            //       fontSize: 12,
+                            //       fontWeight: FontWeight.w600,
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -441,7 +441,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     value: 'cash',
                     icon: Icons.money,
                     title: 'Payment upon arrival',
-                    subtitle: 'Pay when you receive',
+                    subtitle: 'Pay when it\'s ready',
                   ),
 
                   const SizedBox(height: 12),
