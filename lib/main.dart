@@ -49,9 +49,8 @@ void main() async {
             ),
             headlineMedium: GoogleFonts.tiltNeon(fontWeight: FontWeight.w600),
             bodyLarge: GoogleFonts.tiltNeon(),
-            bodyMedium: GoogleFonts.tiltNeon(), 
+            bodyMedium: GoogleFonts.tiltNeon(),
           ),
-
 
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
